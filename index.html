@@ -1344,13 +1344,14 @@
 
   <!-- Purge Old Cached Browser Data -->
   <script>
-    if (localStorage.getItem('soccer_team_db') && localStorage.getItem('soccer_team_db').includes('Marco Rossi')) {
+    const oldDb = localStorage.getItem('soccer_team_db');
+    if (oldDb && (oldDb.includes('Marco Rossi') || oldDb.includes('"id":"p1"') || oldDb.includes('Giulia Bianchi'))) {
       localStorage.removeItem('soccer_team_db');
     }
   </script>
   <!-- App scripts -->
-  <script src="mock-data.js"></script>
-  <script src="app.js"></script>
+  <script src="mock-data.js?v=20260726_2"></script>
+  <script src="app.js?v=20260726_2"></script>
 </body>
 </html>
 
