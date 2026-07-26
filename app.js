@@ -2623,7 +2623,7 @@ class AthleteHubApp {
     if (warnRec) warnRec.style.display = isLocal ? 'block' : 'none';
 
     if (isLocal) {
-      cleanUrl = 'https://IL_TUO_NOME_UTENTE.github.io/IL_TUO_PROGETTO/index.html';
+      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
     }
 
     const defaultRpe = cleanUrl + '?kiosk=rpe';
@@ -2653,7 +2653,10 @@ class AthleteHubApp {
     localStorage.setItem('portal_url_recovery', recUrl);
     
     // Se l'utente ha cancellato il link, ricalcola e mostra il link di default del portale
-    const cleanUrl = window.location.href.split('?')[0];
+    let cleanUrl = window.location.href.split('?')[0];
+    if (window.location.protocol === 'file:') {
+      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
+    }
     const defaultRpe = cleanUrl + '?kiosk=rpe';
     const defaultRec = cleanUrl + '?kiosk=recovery';
     
@@ -2669,7 +2672,7 @@ class AthleteHubApp {
     const isLocal = window.location.protocol === 'file:';
     
     if (isLocal) {
-      cleanUrl = 'https://IL_TUO_NOME_UTENTE.github.io/IL_TUO_PROGETTO/index.html';
+      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
     }
 
     const defaultRpe = cleanUrl + '?kiosk=rpe';
@@ -3039,6 +3042,21 @@ class AthleteHubApp {
     container.innerHTML = '';
     
     const activePlayers = [...this.db.players].sort((a,b) => a.name.localeCompare(b.name));
+
+    if (activePlayers.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 30px 15px; font-size: 13px; line-height: 1.6; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 8px;">
+          ⚠️ <strong>Nessuna giocatrice inserita in rosa.</strong><br><br>
+          Prima di poter usare il terminale spogliatoio o i link, devi inserire le tue atlete nel menu <strong style="color: var(--primary);">"Rosa Giocatrici"</strong> cliccando sul pulsante <strong>+ Aggiungi Giocatrice</strong>.
+        </div>
+      `;
+      document.getElementById('kiosk-step-player').style.display = 'block';
+      document.getElementById('kiosk-step-metrics').style.display = 'none';
+      document.getElementById('kiosk-step-success').style.display = 'none';
+      const overlay = document.getElementById('kiosk-overlay');
+      if (overlay) overlay.style.display = 'flex';
+      return;
+    }
                                          
     activePlayers.forEach(p => {
       const btn = document.createElement('button');
