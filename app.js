@@ -67,7 +67,8 @@ class AthleteHubApp {
       this.pullFromCloud();
     }
 
-    // 8. Check for Roster & Kiosk URL Query Parameters
+    // 8. Check for Cloud URL, Roster & Kiosk URL Query Parameters
+    this.decodeCloudUrlParam();
     this.decodeRosterParam();
     const urlParams = new URLSearchParams(window.location.search);
     const kioskParam = urlParams.get('kiosk');
@@ -2700,6 +2701,33 @@ class AthleteHubApp {
     }
   }
 
+  getEncodedCloudUrlParam() {
+    if (!this.cloudUrl) return '';
+    try {
+      return '&cloudUrl=' + encodeURIComponent(btoa(unescape(encodeURIComponent(this.cloudUrl))));
+    } catch(e) {
+      return '';
+    }
+  }
+
+  decodeCloudUrlParam() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const cloudParam = urlParams.get('cloudUrl');
+      if (cloudParam) {
+        const decodedUrl = decodeURIComponent(escape(atob(decodeURIComponent(cloudParam))));
+        if (decodedUrl && decodedUrl.startsWith('http')) {
+          this.cloudUrl = decodedUrl;
+          localStorage.setItem('soccer_cloud_url', decodedUrl);
+          const urlInput = document.getElementById('config-cloud-url');
+          if (urlInput) urlInput.value = decodedUrl;
+        }
+      }
+    } catch(e) {
+      console.error("Errore decodifica cloudUrl da URL:", e);
+    }
+  }
+
   initPortalUrls() {
     let cleanUrl = window.location.href.split('?')[0];
     const isLocal = window.location.protocol === 'file:';
@@ -2715,8 +2743,9 @@ class AthleteHubApp {
     }
 
     const rosterParam = this.getEncodedRosterParam();
-    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam;
-    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam;
+    const cloudParam = this.getEncodedCloudUrlParam();
+    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam + cloudParam;
+    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam + cloudParam;
 
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
@@ -2744,8 +2773,9 @@ class AthleteHubApp {
       cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
     }
     const rosterParam = this.getEncodedRosterParam();
-    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam;
-    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam;
+    const cloudParam = this.getEncodedCloudUrlParam();
+    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam + cloudParam;
+    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam + cloudParam;
     
     if (!rpeUrl && rpeInput) rpeInput.value = defaultRpe;
     if (!recUrl && recInput) recInput.value = defaultRec;
@@ -2763,8 +2793,9 @@ class AthleteHubApp {
     }
 
     const rosterParam = this.getEncodedRosterParam();
-    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam;
-    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam;
+    const cloudParam = this.getEncodedCloudUrlParam();
+    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam + cloudParam;
+    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam + cloudParam;
 
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
