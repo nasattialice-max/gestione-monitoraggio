@@ -3327,6 +3327,20 @@ class AthleteHubApp {
     
     this.saveDatabase();
     
+    const playerObj = this.db.players.find(p => p.id === playerId);
+    const pName = playerObj ? playerObj.name : 'Giocatrice';
+    let waMsg = '';
+    if (this.kioskMode === 'post-workout') {
+      waMsg = `U.S. MOZZO PALLAVOLO: ${pName} ha registrato RPE ${log.rpe} (${log.duration} min) per l'allenamento!`;
+    } else {
+      waMsg = `U.S. MOZZO PALLAVOLO: ${pName} ha registrato Sonno ${log.sleepDuration}h (Qualità ${log.sleepQuality}/5) e DOMS ${log.doms}/5!`;
+    }
+    
+    const waBtn = document.getElementById('kiosk-wa-btn');
+    if (waBtn) {
+      waBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`;
+    }
+
     document.getElementById('kiosk-step-metrics').style.display = 'none';
     document.getElementById('kiosk-step-success').style.display = 'block';
     
@@ -3334,7 +3348,7 @@ class AthleteHubApp {
     
     setTimeout(() => {
       this.startKiosk(this.kioskMode);
-    }, 2500);
+    }, 6000);
   }
   
   exitKiosk() {
@@ -3711,29 +3725,34 @@ class AthleteHubApp {
     this.cloudUrl = val;
     localStorage.setItem('soccer_cloud_url', val);
     this.showToast("URL Cloud salvato.");
+    const urlInput = document.getElementById('config-cloud-url');
+    if (!urlInput) return;
     
-    if (val) {
+    this.cloudUrl = urlInput.value.trim();
+    localStorage.setItem('soccer_cloud_url', this.cloudUrl);
+    
+    if (this.cloudUrl) {
       this.pullFromCloud();
+      this.startCloudAutoPull();
     } else {
-      const statusEl = document.getElementById('cloud-sync-status');
-      if (statusEl) statusEl.textContent = 'Stato: Non configurato';
+      if (this.cloudPullInterval) clearInterval(this.cloudPullInterval);
     }
   }
 
-  pullFromCloud() {
+  pullFromCloud(silent = false) {
     if (!this.cloudUrl) {
-      this.showToast("Nessun URL cloud configurato.", "error");
+      if (!silent) this.showToast("Nessun URL cloud configurato.", "error");
       return;
     }
 
     const statusEl = document.getElementById('cloud-sync-status');
-    if (statusEl) {
+    if (statusEl && !silent) {
       statusEl.textContent = 'Stato: Ricezione in corso...';
       statusEl.className = 'small-text text-muted';
     }
     
     const kioskStatus = document.getElementById('kiosk-cloud-status');
-    if (kioskStatus) {
+    if (kioskStatus && !silent) {
       kioskStatus.innerHTML = '<span style="color: var(--text-muted);">🔄 Connessione al database...</span>';
     }
 
@@ -3743,19 +3762,23 @@ class AthleteHubApp {
         return res.json();
       })
       .then(data => {
-        // Validazione dei dati cloud
         if (data && Array.isArray(data.players) && Array.isArray(data.dailyLogs)) {
+          const oldLogsCount = (this.db && this.db.dailyLogs) ? this.db.dailyLogs.length : 0;
           this.db = data;
-          this.saveDatabase(true); // Salva localmente saltando il push al cloud
+          this.saveDatabase(true); // Salva localmente saltando il push
           
-          this.showToast("Dati sincronizzati dal Cloud!");
+          const newLogsCount = this.db.dailyLogs.length;
+          if (!silent || newLogsCount > oldLogsCount) {
+            this.showToast("⚡ Nuovi dati sincronizzati dal Cloud!");
+          }
+          
           this.renderActiveTab();
           
           if (this.kioskMode) {
             this.startKiosk(this.kioskMode);
           }
           
-          if (kioskStatus) {
+          if (kioskStatus && !silent) {
             kioskStatus.innerHTML = '<span style="color: #10b981;">🟢 Sincronizzato con il Cloud</span>';
           }
           
@@ -3764,20 +3787,19 @@ class AthleteHubApp {
             statusEl.innerHTML = `<span style="color: #10b981; font-weight: 700;">🟢 Sincronizzato alle ${timeStr}</span>`;
           }
         } else {
-          // Cloud empty or invalid database, trigger an initial push to initialize cloud property
-          console.warn("Dati cloud vuoti o non validi, inizializzo il cloud con i dati correnti.");
+          if (!silent) console.warn("Dati cloud vuoti o non validi, inizializzo il cloud.");
           this.syncToCloud();
         }
       })
       .catch(err => {
         console.error("Errore sinc cloud (pull):", err);
-        if (statusEl) {
+        if (statusEl && !silent) {
           statusEl.innerHTML = `<span style="color: #ef4444; font-weight: 700;">🔴 Errore sincronizzazione</span>`;
         }
-        if (kioskStatus) {
-          kioskStatus.innerHTML = '<span style="color: #ef4444;">🔴 Modalità Offline (Errore sincronizzazione)</span>';
+        if (kioskStatus && !silent) {
+          kioskStatus.innerHTML = '<span style="color: #ef4444;">🔴 Modalità Offline</span>';
         }
-        this.showToast("Impossibile scaricare i dati dal cloud.", "error");
+        if (!silent) this.showToast("Impossibile scaricare i dati dal cloud.", "error");
       });
   }
 
