@@ -76,6 +76,15 @@ class AthleteHubApp {
     } else if (kioskParam === 'recovery' || kioskParam === 'morning-recovery') {
       this.startKiosk('morning-recovery');
     }
+
+    // 9. Real-time cross-tab synchronization listener
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'soccer_team_db') {
+        this.loadDatabase();
+        this.renderActiveTab();
+        this.showToast("⚡ Nuovi dati ricevuti ed aggiornati in tempo reale!");
+      }
+    });
   }
 
   // DATABASE OPERATIONS
@@ -84,10 +93,20 @@ class AthleteHubApp {
     if (localData) {
       try {
         const parsed = JSON.parse(localData);
-        if (parsed.players && (parsed.players.some(p => p.name === 'Marco Rossi' || p.id === 'p1') || localData.includes('Marco Rossi'))) {
-          localStorage.removeItem('soccer_team_db');
-          this.clearDatabase();
-          return;
+        const sampleNames = ['marco rossi', 'giulia bianchi', 'martina rossi', 'sara verdi', 'elena neri', 'sofia russo'];
+        const sampleIds = ['p1', 'p2', 'p3', 'p4', 'p5'];
+        
+        if (parsed.players && Array.isArray(parsed.players)) {
+          const originalCount = parsed.players.length;
+          parsed.players = parsed.players.filter(p => {
+            const isSampleId = sampleIds.includes(p.id);
+            const isSampleName = sampleNames.includes((p.name || '').toLowerCase().trim());
+            return !isSampleId && !isSampleName;
+          });
+          if (parsed.players.length !== originalCount) {
+            this.db = parsed;
+            this.saveDatabase(true);
+          }
         }
         this.db = parsed;
         if (!this.db || !Array.isArray(this.db.players)) {
@@ -2668,14 +2687,11 @@ class AthleteHubApp {
         const jsonStr = decodeURIComponent(escape(atob(decodeURIComponent(rosterParam))));
         const players = JSON.parse(jsonStr);
         if (Array.isArray(players) && players.length > 0) {
-          if (!this.db || !Array.isArray(this.db.players)) {
+          if (!this.db) {
             this.db = { players: [], dailyLogs: [], physicalTests: [], squatProfiles: {}, neuromuscularTests: {}, calendarEvents: [] };
           }
-          players.forEach(p => {
-            if (!this.db.players.some(x => x.id === p.id || x.name.toLowerCase() === p.name.toLowerCase())) {
-              this.db.players.push(p);
-            }
-          });
+          // Sostituisce completamente la rosa del telefono con quella esatta inviata nel QR Code
+          this.db.players = players;
           this.saveDatabase(true);
         }
       }
@@ -2738,7 +2754,7 @@ class AthleteHubApp {
     this.showToast("Link dei moduli salvati con successo!");
   }
   
-  generatePortalQrs() {
+  generatePortalQrs(forceReset = false) {
     let cleanUrl = window.location.href.split('?')[0];
     const isLocal = window.location.protocol === 'file:';
     
@@ -2753,6 +2769,16 @@ class AthleteHubApp {
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
 
+    if (forceReset || (rpeInput && rpeInput.value.includes('&roster='))) {
+      localStorage.removeItem('portal_url_rpe');
+      localStorage.removeItem('portal_url_recovery');
+      if (rpeInput) rpeInput.value = defaultRpe;
+      if (recInput) recInput.value = defaultRec;
+    } else {
+      if (rpeInput && !rpeInput.value) rpeInput.value = defaultRpe;
+      if (recInput && !recInput.value) recInput.value = defaultRec;
+    }
+
     const rpeUrl = (rpeInput && rpeInput.value) ? rpeInput.value : defaultRpe;
     const recUrl = (recInput && recInput.value) ? recInput.value : defaultRec;
     
@@ -2763,6 +2789,10 @@ class AthleteHubApp {
     
     rpeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(rpeUrl)}" style="border: 6px solid white; border-radius: 4px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.35);" alt="QR Code RPE">`;
     recContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(recUrl)}" style="border: 6px solid white; border-radius: 4px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.35);" alt="QR Code Recovery">`;
+    
+    if (forceReset) {
+      this.showToast("QR Code e link aggiornati con la rosa corrente!");
+    }
   }
 
   copyPortalUrl(type) {
