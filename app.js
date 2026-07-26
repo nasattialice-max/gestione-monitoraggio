@@ -123,6 +123,10 @@ class AthleteHubApp {
             logoUrl: "us_mozzo_logo.png"
           };
         }
+        if (this.db.settings.cloudUrl && !this.cloudUrl) {
+          this.cloudUrl = this.db.settings.cloudUrl;
+          localStorage.setItem('soccer_cloud_url', this.cloudUrl);
+        }
       } catch (e) {
         console.error("Errore nel parsing del database locale. Inizializzo pulito.", e);
         this.clearDatabase();
@@ -3762,6 +3766,10 @@ class AthleteHubApp {
     const val = input.value.trim();
     this.cloudUrl = val;
     localStorage.setItem('soccer_cloud_url', val);
+    
+    if (!this.db.settings) this.db.settings = {};
+    this.db.settings.cloudUrl = val;
+    this.saveDatabase(true);
     
     if (this.cloudUrl) {
       this.showToast("URL Cloud salvato con successo!");
