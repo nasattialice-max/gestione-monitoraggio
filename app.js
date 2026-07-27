@@ -1719,38 +1719,55 @@ class AthleteHubApp {
     let saveCount = 0;
 
     this.db.players.forEach(p => {
-      const cmjVal = parseFloat(document.getElementById(`cmj-${p.id}`).value);
-      const rpeVal = parseInt(document.getElementById(`rpe-${p.id}`).value);
-      const durVal = parseInt(document.getElementById(`duration-${p.id}`).value) || 0;
-      const sleepHVal = parseFloat(document.getElementById(`sleep-h-${p.id}`).value) || 0;
-      const sleepQVal = parseInt(document.getElementById(`sleep-q-${p.id}`).value);
-      const domsVal = parseInt(document.getElementById(`doms-${p.id}`).value);
-      const domsNotesVal = document.getElementById(`doms-notes-${p.id}`).value;
-      const hrRipVal = parseInt(document.getElementById(`hr-rip-${p.id}`).value) || 0;
-      const hrMaxVal = parseInt(document.getElementById(`hr-max-${p.id}`).value) || 0;
+      const cmjEl = document.getElementById(`cmj-${p.id}`);
+      const rpeEl = document.getElementById(`rpe-${p.id}`);
+      const durEl = document.getElementById(`duration-${p.id}`);
+      const sleepHEl = document.getElementById(`sleep-h-${p.id}`);
+      const sleepQEl = document.getElementById(`sleep-q-${p.id}`);
+      const domsEl = document.getElementById(`doms-${p.id}`);
+      const domsNotesEl = document.getElementById(`doms-notes-${p.id}`);
 
-      // Skip empty fields if they didn't input anything
-      if (isNaN(cmjVal) && rpeVal === 0 && durVal === 0) {
-        return; 
-      }
+      const cmjVal = cmjEl ? parseFloat(cmjEl.value) : NaN;
+      const rpeVal = rpeEl ? parseInt(rpeEl.value) : 0;
+      const durVal = durEl ? (parseInt(durEl.value) || 0) : 0;
+      const sleepHVal = sleepHEl ? (parseFloat(sleepHEl.value) || 0) : 0;
+      const sleepQVal = sleepQEl ? parseInt(sleepQEl.value) : 0;
+      const domsVal = domsEl ? parseInt(domsEl.value) : 0;
+      const domsNotesVal = domsNotesEl ? domsNotesEl.value.trim() : '';
 
       // Check if log already exists
       const logIdx = this.db.dailyLogs.findIndex(l => l.date === selectedDate && l.playerId === p.id);
-      
-      const logData = {
-        id: logIdx > -1 ? this.db.dailyLogs[logIdx].id : `log_${p.id}_${selectedDate}`,
+      const existing = logIdx > -1 ? this.db.dailyLogs[logIdx] : null;
+
+      // Skip empty row if nothing typed
+      if (isNaN(cmjVal) && rpeVal === 0 && durVal === 0 && sleepHVal === 0 && sleepQVal === 0 && domsVal === 0 && !existing) {
+        return; 
+      }
+
+      const logData = existing ? { ...existing } : {
+        id: `log_${p.id}_${selectedDate}`,
         date: selectedDate,
         playerId: p.id,
-        cmjHeight: isNaN(cmjVal) ? 0 : cmjVal,
-        rpe: rpeVal,
-        duration: durVal,
-        sleepQuality: sleepQVal,
-        sleepDuration: sleepHVal,
-        doms: domsVal,
-        domsNotes: domsNotesVal,
-        restingHR: hrRipVal,
-        sessionHRMax: hrMaxVal
+        cmjHeight: 0,
+        rpe: 0,
+        duration: 0,
+        sleepQuality: 0,
+        sleepDuration: 0,
+        doms: 0,
+        domsNotes: ""
       };
+
+      if (!isNaN(cmjVal)) logData.cmjHeight = cmjVal;
+      logData.rpe = rpeVal;
+      logData.duration = durVal;
+
+      // Only update sleep and DOMS if filled in
+      if (sleepHVal > 0) {
+        logData.sleepDuration = sleepHVal;
+        logData.sleepQuality = sleepQVal > 0 ? sleepQVal : 5;
+      }
+      if (domsVal > 0) logData.doms = domsVal;
+      if (domsNotesVal !== '') logData.domsNotes = domsNotesVal;
 
       if (logIdx > -1) {
         this.db.dailyLogs[logIdx] = logData;
