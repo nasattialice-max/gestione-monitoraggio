@@ -1497,7 +1497,7 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Durata Sonno (ore)</label>
             <div class="input-unit-wrapper">
-              <input type="number" step="0.5" id="sleep-h-${p.id}" class="form-control" placeholder="es. 8" value="${log ? log.sleepDuration : ''}">
+              <input type="number" step="0.5" id="sleep-h-${p.id}" class="form-control" placeholder="es. 8" value="${log && log.sleepDuration > 0 ? log.sleepDuration : ''}">
               <span class="input-unit">ore</span>
             </div>
           </div>
@@ -1506,7 +1506,8 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Qualità del Sonno</label>
             <select id="sleep-q-${p.id}" class="form-control">
-              <option value="5" ${log && log.sleepQuality == 5 ? 'selected' : !log ? 'selected' : ''}>5 - Ottimo</option>
+              <option value="0" ${!log || !log.sleepQuality || log.sleepQuality == 0 ? 'selected' : ''}>-- Non registrato --</option>
+              <option value="5" ${log && log.sleepQuality == 5 ? 'selected' : ''}>5 - Ottimo</option>
               <option value="4" ${log && log.sleepQuality == 4 ? 'selected' : ''}>4 - Buono</option>
               <option value="3" ${log && log.sleepQuality == 3 ? 'selected' : ''}>3 - Sufficiente</option>
               <option value="2" ${log && log.sleepQuality == 2 ? 'selected' : ''}>2 - Poco</option>
@@ -1518,7 +1519,8 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Dolore Muscolare (DOMS)</label>
             <select id="doms-${p.id}" class="form-control">
-              <option value="1" ${log && log.doms == 1 ? 'selected' : !log ? 'selected' : ''}>1 - Nessun Dolore</option>
+              <option value="0" ${!log || !log.doms || log.doms == 0 ? 'selected' : ''}>-- Non registrato --</option>
+              <option value="1" ${log && log.doms == 1 ? 'selected' : ''}>1 - Nessun Dolore</option>
               <option value="2" ${log && log.doms == 2 ? 'selected' : ''}>2 - Lieve Affaticamento</option>
               <option value="3" ${log && log.doms == 3 ? 'selected' : ''}>3 - Dolore Moderato</option>
               <option value="4" ${log && log.doms == 4 ? 'selected' : ''}>4 - Dolore Forte</option>
@@ -3522,9 +3524,9 @@ class AthleteHubApp {
         cmjHeight: 0,
         rpe: 0,
         duration: 0,
-        sleepQuality: 5,
-        sleepDuration: 8.0,
-        doms: 1,
+        sleepQuality: 0,
+        sleepDuration: 0,
+        doms: 0,
         domsNotes: "",
         restingHR: 0,
         sessionHRMax: 0
@@ -3533,12 +3535,12 @@ class AthleteHubApp {
     }
     
     if (this.kioskMode === 'post-workout') {
-      log.rpe = parseInt(document.getElementById('kiosk-rpe').value);
-      log.duration = parseInt(document.getElementById('kiosk-duration').value) || 90;
+      log.rpe = parseInt(document.getElementById('kiosk-rpe').value) || 0;
+      log.duration = parseInt(document.getElementById('kiosk-duration').value) || 0;
     } else {
-      log.sleepDuration = parseFloat(document.getElementById('kiosk-sleep-h').value) || 8.0;
-      log.sleepQuality = parseInt(document.getElementById('kiosk-sleep-q').value);
-      log.doms = parseInt(document.getElementById('kiosk-doms').value);
+      log.sleepDuration = parseFloat(document.getElementById('kiosk-sleep-h').value) || 0;
+      log.sleepQuality = parseInt(document.getElementById('kiosk-sleep-q').value) || 0;
+      log.doms = parseInt(document.getElementById('kiosk-doms').value) || 0;
       log.domsNotes = document.getElementById('kiosk-doms-notes').value.trim();
     }
     
