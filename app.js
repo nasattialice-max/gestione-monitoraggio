@@ -3942,10 +3942,22 @@ class AthleteHubApp {
             if (l.cmjHeight !== undefined) l.cmjHeight = Number(l.cmjHeight) || 0;
           });
 
-          const oldLogsCount = (this.db && this.db.dailyLogs) ? this.db.dailyLogs.length : 0;
-          this.db = data;
-          this.saveDatabase(true); // Salva localmente saltando il push
+          // Smart roster merge: if Cloud has fewer players than Local, merge local missing players into Cloud
+          if (this.db && Array.isArray(this.db.players) && this.db.players.length > data.players.length) {
+            const cloudPlayerIds = new Set(data.players.map(p => p.id));
+            this.db.players.forEach(localP => {
+              if (!cloudPlayerIds.has(localP.id)) {
+                data.players.push(localP);
+              }
+            });
+            this.db = data;
+            this.saveDatabase(false); // Save & sync merged full roster back to cloud!
+          } else {
+            this.db = data;
+            this.saveDatabase(true); // Save locally skipping push
+          }
           
+          const oldLogsCount = (this.db && this.db.dailyLogs) ? this.db.dailyLogs.length : 0;
           const newLogsCount = this.db.dailyLogs.length;
           if (!silent || newLogsCount > oldLogsCount) {
             this.showToast("⚡ Nuovi dati sincronizzati dal Cloud!");
