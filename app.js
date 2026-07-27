@@ -2281,7 +2281,7 @@ class AthleteHubApp {
     this.showToast("Backup scaricato con successo!");
   }
 
-  exportMockDataJs() {
+  async exportMockDataJs() {
     const mockDataObj = {
       players: this.db.players,
       dailyLogs: this.db.dailyLogs,
@@ -2298,18 +2298,37 @@ class AthleteHubApp {
 
     const fileContent = `// File Sincronizzato Rosa U.S. MOZZO PALLAVOLO\nconst generateMockData = () => {\n  return ${JSON.stringify(mockDataObj, null, 2)};\n};\n\nwindow.MOCK_DATA = generateMockData();\n`;
 
+    // Try modern File System Access API to pick and save directly in Desktop folder
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'mock-data.js',
+          types: [{
+            description: 'JavaScript File',
+            accept: { 'application/javascript': ['.js'] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(fileContent);
+        await writable.close();
+        this.showToast("File mock-data.js salvato direttamente nella cartella scelta!");
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback standard download
     const blob = new Blob([fileContent], { type: 'application/javascript' });
     const url = URL.createObjectURL(blob);
-    
     const a = document.createElement('a');
     a.href = url;
     a.download = 'mock-data.js';
     document.body.appendChild(a);
     a.click();
-    
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    this.showToast("File mock-data.js scaricato! Caricalo su GitHub per aggiornare le giocatrici sui cellulari.");
+    this.showToast("File mock-data.js scaricato!");
   }
 
   importDatabaseFile(file) {
@@ -4045,8 +4064,25 @@ class AthleteHubApp {
           
           this.renderActiveTab();
           
-          if (this.kioskMode) {
-            this.startKiosk(this.kioskMode);
+          if (this.kioskMode && !this.kioskPlayerId) {
+            // Update player buttons without resetting active kiosk form step
+            const container = document.getElementById('kiosk-players-list');
+            if (container && this.db && Array.isArray(this.db.players)) {
+              const activePlayers = this.db.players.filter(p => p.status !== 'Infortunato');
+              if (activePlayers.length > 0) {
+                container.innerHTML = '';
+                activePlayers.forEach(p => {
+                  const btn = document.createElement('button');
+                  btn.className = 'btn btn-secondary';
+                  btn.style.padding = '15px';
+                  btn.style.fontSize = '14px';
+                  btn.style.textAlign = 'center';
+                  btn.textContent = p.name;
+                  btn.onclick = () => this.selectKioskPlayer(p.id);
+                  container.appendChild(btn);
+                });
+              }
+            }
           }
           
           if (kioskStatus && !silent) {
