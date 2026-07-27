@@ -600,6 +600,28 @@ class AthleteHubApp {
           }
         }
       }
+
+      // 3. Sleep Badge (Duration & Quality)
+      const sleepHInput = document.getElementById(`sleep-h-${p.id}`);
+      const sleepQSelect = document.getElementById(`sleep-q-${p.id}`);
+      const badgeSleep = document.getElementById(`badge-sleep-${p.id}`);
+      
+      if (badgeSleep) {
+        const selectedDate = document.getElementById('daily-log-date') ? document.getElementById('daily-log-date').value : '';
+        const log = this.db.dailyLogs.find(l => l.playerId === p.id && l.date === selectedDate);
+        
+        const sleepH = sleepHInput && sleepHInput.value ? parseFloat(sleepHInput.value) : (log ? log.sleepDuration : 0);
+        const sleepQ = sleepQSelect ? parseInt(sleepQSelect.value) : (log ? log.sleepQuality : 5);
+        
+        if (!isNaN(sleepH) && sleepH > 0) {
+          const badgeClass = sleepH >= 7 ? 'badge-success' : sleepH >= 5.5 ? 'badge-warning' : 'badge-danger';
+          badgeSleep.className = `badge ${badgeClass}`;
+          badgeSleep.textContent = `🌙 ${sleepH}h (Q${sleepQ}/5)`;
+        } else {
+          badgeSleep.className = 'badge badge-secondary';
+          badgeSleep.textContent = 'N/D';
+        }
+      }
     });
   }
 
@@ -1140,6 +1162,35 @@ class AthleteHubApp {
         }
       }
     });
+
+    // 3. Populate Sleep & DOMS Detailed History Table
+    const sleepTableBody = document.getElementById('player-det-sleep-history-body');
+    if (sleepTableBody) {
+      sleepTableBody.innerHTML = '';
+      if (logs.length === 0) {
+        sleepTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;">Nessuna registrazione di sonno/wellness presente per questa giocatrice.</td></tr>';
+      } else {
+        const recentLogs = [...logs].reverse();
+        recentLogs.forEach(l => {
+          const tr = document.createElement('tr');
+          const dateFormatted = l.date ? l.date.split('-').reverse().join('/') : '';
+          
+          const sleepQText = l.sleepQuality == 5 ? '5 - Ottimo' : l.sleepQuality == 4 ? '4 - Buono' : l.sleepQuality == 3 ? '3 - Sufficiente' : l.sleepQuality == 2 ? '2 - Poco' : '1 - Insonnia';
+          const domsText = l.doms == 1 ? '1 - Nessuno' : l.doms == 2 ? '2 - Lieve' : l.doms == 3 ? '3 - Moderato' : l.doms == 4 ? '4 - Forte' : '5 - Invalidante';
+          
+          tr.innerHTML = `
+            <td><strong>${dateFormatted}</strong></td>
+            <td><span class="badge badge-info" style="font-weight: 600;"><i data-lucide="moon" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle;"></i> ${l.sleepDuration || 0} ore</span></td>
+            <td>${sleepQText}</td>
+            <td>${domsText}</td>
+            <td><span class="badge badge-secondary">${l.rpe > 0 ? `RPE ${l.rpe} (${l.duration} min)` : 'Non svolto'}</span></td>
+            <td class="small-text text-muted">${l.domsNotes || '-'}</td>
+          `;
+          sleepTableBody.appendChild(tr);
+        });
+        try { lucide.createIcons({ root: sleepTableBody }); } catch(e){}
+      }
+    }
   }
 
   renderPlayerFvSquat(playerId) {
@@ -1374,17 +1425,21 @@ class AthleteHubApp {
               <h4>${p.name}</h4>
               <span>Ruolo: ${p.role} | Stato: <strong>${p.status}</strong></span>
             </div>
-          </div>
-
           <div class="daily-row-preview-badges" onclick="event.stopPropagation()">
             <div class="badge-item">
               <span class="badge-label">Readiness CMJ</span>
               <span class="badge badge-secondary" id="badge-readiness-${p.id}">N/D</span>
             </div>
             <div class="badge-item">
-              <span class="badge-label">Fatica RPE (vs Media)</span>
+              <span class="badge-label">Fatica RPE</span>
               <span class="badge badge-secondary" id="badge-psycho-${p.id}">N/D</span>
             </div>
+            <div class="badge-item">
+              <span class="badge-label">Sonno & Riposo</span>
+              <span class="badge badge-secondary" id="badge-sleep-${p.id}">N/D</span>
+            </div>
+          </div></div>
+
           <div style="display: flex; align-items: center; gap: 6px;" onclick="event.stopPropagation()">
             <button type="button" class="btn btn-danger btn-sm" onclick="app.deletePlayerRpe('${p.id}', '${selectedDate}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); height: 32px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Cancella i dati RPE per ${p.name}">
               <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Cancella RPE
@@ -3883,12 +3938,12 @@ class AthleteHubApp {
     if (this.cloudPullInterval) clearInterval(this.cloudPullInterval);
     if (!this.cloudUrl) return;
     
-    // Auto-pull ogni 20 secondi per scaricare in automatico i dati inviati dai cellulari
+    // Auto-pull ultra-veloce ogni 4 secondi per aggiornare immediatamente i dati ricevuti dai cellulari senza premere F5
     this.cloudPullInterval = setInterval(() => {
       if (!this.kioskMode && this.cloudUrl) {
         this.pullFromCloud(true);
       }
-    }, 20000);
+    }, 4000);
   }
 
   saveCloudUrl() {
