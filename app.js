@@ -1379,11 +1379,17 @@ class AthleteHubApp {
               <span class="badge-label">Fatica RPE (vs Media)</span>
               <span class="badge badge-secondary" id="badge-psycho-${p.id}">N/D</span>
             </div>
+          <div style="display: flex; align-items: center; gap: 6px;" onclick="event.stopPropagation()">
+            <button type="button" class="btn btn-danger btn-sm" onclick="app.deletePlayerRpe('${p.id}', '${selectedDate}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); height: 32px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Cancella i dati RPE per ${p.name}">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Cancella RPE
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" onclick="app.deletePlayerRecovery('${p.id}', '${selectedDate}')" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); height: 32px; padding: 0 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; cursor: pointer;" title="Cancella i dati dello Stato Mattutino per ${p.name}">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Cancella Mattutino
+            </button>
+            <button class="btn-toggle-row" onclick="app.toggleDailyRow('${p.id}')">
+              <i data-lucide="chevron-down"></i>
+            </button>
           </div>
-
-          <button class="btn-toggle-row">
-            <i data-lucide="chevron-down"></i>
-          </button>
         </div>
 
         <div class="daily-row-inputs" id="inputs-${p.id}">
@@ -1464,6 +1470,16 @@ class AthleteHubApp {
             <label>Note Dolori Muscolari</label>
             <input type="text" id="doms-notes-${p.id}" class="form-control" placeholder="es. Fastidio bicipite femorale" value="${log ? log.domsNotes || '' : ''}">
           </div>
+
+          <!-- Separate Delete Log Buttons inside expanded row -->
+          <div class="form-group" style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="app.deletePlayerRpe('${p.id}', '${selectedDate}')" style="background: rgba(239, 68, 68, 0.18); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 600; padding: 8px 14px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;" title="Cancella solo RPE di ${p.name}">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Elimina solo RPE (${p.name})
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" onclick="app.deletePlayerRecovery('${p.id}', '${selectedDate}')" style="background: rgba(245, 158, 11, 0.18); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 600; padding: 8px 14px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px;" title="Cancella solo Stato Mattutino di ${p.name}">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Elimina solo Stato Mattutino (${p.name})
+            </button>
+          </div>
         </div>
       `;
       container.appendChild(card);
@@ -1491,6 +1507,110 @@ class AthleteHubApp {
   toggleDailyRow(playerId) {
     const card = document.getElementById(`row-${playerId}`);
     card.classList.toggle('expanded');
+  }
+
+  // 1. CANCELLAZIONE RPE SINGOLA GIOCATRICE
+  deletePlayerRpe(playerId, date) {
+    const player = this.db.players.find(p => p.id === playerId);
+    const pName = player ? player.name : 'Giocatrice';
+    const dateFormatted = date ? date.split('-').reverse().join('/') : '';
+    
+    if (confirm(`Confermi la cancellazione dei SOLI dati RPE (sforzo e minuti) per ${pName} in data ${dateFormatted}?`)) {
+      const log = this.db.dailyLogs.find(l => l.playerId === playerId && l.date === date);
+      if (log) {
+        log.rpe = 0;
+        log.duration = 0;
+        if ((!log.sleepDuration || log.sleepDuration === 0) && (!log.doms || log.doms === 1) && !log.cmjHeight) {
+          this.db.dailyLogs = this.db.dailyLogs.filter(l => !(l.playerId === playerId && l.date === date));
+        }
+        this.saveDatabase();
+        this.showToast(`Dati RPE di ${pName} cancellati per il ${dateFormatted}.`);
+        this.renderDailyLog();
+        this.renderDashboard();
+      } else {
+        this.showToast("Nessun dato RPE trovato per questa giocatrice.", "error");
+      }
+    }
+  }
+
+  // 2. CANCELLAZIONE STATO MATTUTINO SINGOLA GIOCATRICE
+  deletePlayerRecovery(playerId, date) {
+    const player = this.db.players.find(p => p.id === playerId);
+    const pName = player ? player.name : 'Giocatrice';
+    const dateFormatted = date ? date.split('-').reverse().join('/') : '';
+    
+    if (confirm(`Confermi la cancellazione dei SOLI dati Stato Mattutino (Sonno e DOMS) per ${pName} in data ${dateFormatted}?`)) {
+      const log = this.db.dailyLogs.find(l => l.playerId === playerId && l.date === date);
+      if (log) {
+        log.sleepQuality = 5;
+        log.sleepDuration = 0;
+        log.doms = 1;
+        log.domsNotes = "";
+        if ((!log.rpe || log.rpe === 0) && (!log.duration || log.duration === 0) && !log.cmjHeight) {
+          this.db.dailyLogs = this.db.dailyLogs.filter(l => !(l.playerId === playerId && l.date === date));
+        }
+        this.saveDatabase();
+        this.showToast(`Dati Stato Mattutino di ${pName} cancellati per il ${dateFormatted}.`);
+        this.renderDailyLog();
+        this.renderDashboard();
+      } else {
+        this.showToast("Nessun dato Stato Mattutino trovato per questa giocatrice.", "error");
+      }
+    }
+  }
+
+  // 3. CANCELLAZIONE RPE INTERA SQUADRA
+  clearTeamRpeForDate() {
+    const selectedDate = document.getElementById('daily-log-date').value;
+    const dateFormatted = selectedDate ? selectedDate.split('-').reverse().join('/') : '';
+    
+    const count = this.db.dailyLogs.filter(l => l.date === selectedDate && l.rpe > 0).length;
+    if (count === 0) {
+      this.showToast("Nessun dato RPE presente per la data selezionata.", "error");
+      return;
+    }
+    
+    if (confirm(`ATTENZIONE AMMINISTRATORE:\nSei sicuro di voler CANCELLARE I SOLI DATI RPE dell'intera squadra (${count} giocatrici) per la data ${dateFormatted}?`)) {
+      this.db.dailyLogs.forEach(l => {
+        if (l.date === selectedDate) {
+          l.rpe = 0;
+          l.duration = 0;
+        }
+      });
+      this.db.dailyLogs = this.db.dailyLogs.filter(l => l.rpe > 0 || l.sleepDuration > 0 || l.cmjHeight > 0);
+      this.saveDatabase();
+      this.showToast(`Dati RPE dell'intera squadra cancellati per il ${dateFormatted}.`);
+      this.renderDailyLog();
+      this.renderDashboard();
+    }
+  }
+
+  // 4. CANCELLAZIONE STATO MATTUTINO INTERA SQUADRA
+  clearTeamRecoveryForDate() {
+    const selectedDate = document.getElementById('daily-log-date').value;
+    const dateFormatted = selectedDate ? selectedDate.split('-').reverse().join('/') : '';
+    
+    const count = this.db.dailyLogs.filter(l => l.date === selectedDate && l.sleepDuration > 0).length;
+    if (count === 0) {
+      this.showToast("Nessun dato Stato Mattutino presente per la data selezionata.", "error");
+      return;
+    }
+    
+    if (confirm(`ATTENZIONE AMMINISTRATORE:\nSei sicuro di voler CANCELLARE I SOLI DATI STATO MATTUTINO (Sonno/DOMS) dell'intera squadra (${count} giocatrici) per la data ${dateFormatted}?`)) {
+      this.db.dailyLogs.forEach(l => {
+        if (l.date === selectedDate) {
+          l.sleepQuality = 5;
+          l.sleepDuration = 0;
+          l.doms = 1;
+          l.domsNotes = "";
+        }
+      });
+      this.db.dailyLogs = this.db.dailyLogs.filter(l => l.rpe > 0 || l.sleepDuration > 0 || l.cmjHeight > 0);
+      this.saveDatabase();
+      this.showToast(`Dati Stato Mattutino dell'intera squadra cancellati per il ${dateFormatted}.`);
+      this.renderDailyLog();
+      this.renderDashboard();
+    }
   }
 
   fillDailyDefaults() {
