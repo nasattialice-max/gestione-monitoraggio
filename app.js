@@ -3418,9 +3418,24 @@ class AthleteHubApp {
     
     const container = document.getElementById('kiosk-players-list');
     if (!container) return;
+    
+    this.renderKioskPlayerButtons(this.cloudSynced || false);
+    
+    document.getElementById('kiosk-step-player').style.display = 'block';
+    document.getElementById('kiosk-step-metrics').style.display = 'none';
+    document.getElementById('kiosk-step-success').style.display = 'none';
+    
+    const overlay = document.getElementById('kiosk-overlay');
+    if (overlay) overlay.style.display = 'flex';
+  }
+
+  renderKioskPlayerButtons(isSynced = false) {
+    const container = document.getElementById('kiosk-players-list');
+    const kioskStatus = document.getElementById('kiosk-cloud-status');
+    if (!container) return;
     container.innerHTML = '';
     
-    const activePlayers = [...this.db.players].sort((a,b) => a.name.localeCompare(b.name));
+    const activePlayers = [...this.db.players].filter(p => p.status !== 'Infortunato').sort((a,b) => a.name.localeCompare(b.name));
 
     if (activePlayers.length === 0) {
       container.innerHTML = `
@@ -3429,11 +3444,6 @@ class AthleteHubApp {
           Prima di poter usare il terminale spogliatoio o i link, devi inserire le tue atlete nel menu <strong style="color: var(--primary);">"Rosa Giocatrici"</strong> cliccando sul pulsante <strong>+ Aggiungi Giocatrice</strong>.
         </div>
       `;
-      document.getElementById('kiosk-step-player').style.display = 'block';
-      document.getElementById('kiosk-step-metrics').style.display = 'none';
-      document.getElementById('kiosk-step-success').style.display = 'none';
-      const overlay = document.getElementById('kiosk-overlay');
-      if (overlay) overlay.style.display = 'flex';
       return;
     }
                                          
@@ -3443,17 +3453,32 @@ class AthleteHubApp {
       btn.style.padding = '15px';
       btn.style.fontSize = '14px';
       btn.style.textAlign = 'center';
+      btn.style.transition = 'all 0.25s ease';
       btn.textContent = p.name;
-      btn.onclick = () => this.selectKioskPlayer(p.id);
+      
+      if (!isSynced) {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.style.cursor = 'not-allowed';
+        btn.style.pointerEvents = 'none';
+        btn.title = 'Attendi la connessione col Cloud...';
+      } else {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.style.pointerEvents = 'auto';
+        btn.onclick = () => this.selectKioskPlayer(p.id);
+      }
       container.appendChild(btn);
     });
-    
-    document.getElementById('kiosk-step-player').style.display = 'block';
-    document.getElementById('kiosk-step-metrics').style.display = 'none';
-    document.getElementById('kiosk-step-success').style.display = 'none';
-    
-    const overlay = document.getElementById('kiosk-overlay');
-    if (overlay) overlay.style.display = 'flex';
+
+    if (kioskStatus) {
+      if (!isSynced) {
+        kioskStatus.innerHTML = '<span style="color: #f59e0b; font-weight: 600;">🔄 Connessione al Cloud in corso... (Attendi sblocco)</span>';
+      } else {
+        kioskStatus.innerHTML = '<span style="color: #10b981; font-weight: 600;">🟢 Connesso al Cloud - Seleziona il tuo nome</span>';
+      }
+    }
   }
   
   selectKioskPlayer(playerId) {
@@ -4062,31 +4087,15 @@ class AthleteHubApp {
             this.showToast("⚡ Nuovi dati sincronizzati dal Cloud!");
           }
           
+          this.cloudSynced = true;
           this.renderActiveTab();
           
           if (this.kioskMode && !this.kioskPlayerId) {
-            // Update player buttons without resetting active kiosk form step
-            const container = document.getElementById('kiosk-players-list');
-            if (container && this.db && Array.isArray(this.db.players)) {
-              const activePlayers = this.db.players.filter(p => p.status !== 'Infortunato');
-              if (activePlayers.length > 0) {
-                container.innerHTML = '';
-                activePlayers.forEach(p => {
-                  const btn = document.createElement('button');
-                  btn.className = 'btn btn-secondary';
-                  btn.style.padding = '15px';
-                  btn.style.fontSize = '14px';
-                  btn.style.textAlign = 'center';
-                  btn.textContent = p.name;
-                  btn.onclick = () => this.selectKioskPlayer(p.id);
-                  container.appendChild(btn);
-                });
-              }
-            }
+            this.renderKioskPlayerButtons(true);
           }
           
           if (kioskStatus && !silent) {
-            kioskStatus.innerHTML = '<span style="color: #10b981;">🟢 Sincronizzato con il Cloud</span>';
+            kioskStatus.innerHTML = '<span style="color: #10b981; font-weight: 600;">🟢 Connesso al Cloud - Seleziona il tuo nome</span>';
           }
           
           if (statusEl) {
@@ -4094,17 +4103,21 @@ class AthleteHubApp {
             statusEl.innerHTML = `<span style="color: #10b981; font-weight: 700;">🟢 Sincronizzato alle ${timeStr}</span>`;
           }
         } else {
+          this.cloudSynced = true;
+          if (this.kioskMode && !this.kioskPlayerId) this.renderKioskPlayerButtons(true);
           if (!silent) console.warn("Dati cloud vuoti o non validi, inizializzo il cloud.");
           this.syncToCloud();
         }
       })
       .catch(err => {
+        this.cloudSynced = true;
+        if (this.kioskMode && !this.kioskPlayerId) this.renderKioskPlayerButtons(true);
         console.error("Errore sinc cloud (pull):", err);
         if (statusEl && !silent) {
           statusEl.innerHTML = `<span style="color: #ef4444; font-weight: 700;">🔴 Errore sincronizzazione</span>`;
         }
         if (kioskStatus && !silent) {
-          kioskStatus.innerHTML = '<span style="color: #ef4444;">🔴 Modalità Offline</span>';
+          kioskStatus.innerHTML = '<span style="color: #f59e0b; font-weight: 600;">⚠️ Modalità Offline - Seleziona il tuo nome</span>';
         }
         if (!silent) this.showToast("Impossibile scaricare i dati dal cloud.", "error");
       });
