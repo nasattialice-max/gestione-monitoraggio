@@ -1516,14 +1516,16 @@ class AthleteHubApp {
     const dateFormatted = date ? date.split('-').reverse().join('/') : '';
     
     if (confirm(`Confermi la cancellazione dei SOLI dati RPE (sforzo e minuti) per ${pName} in data ${dateFormatted}?`)) {
-      const log = this.db.dailyLogs.find(l => l.playerId === playerId && l.date === date);
-      if (log) {
+      const logIdx = this.db.dailyLogs.findIndex(l => l.playerId === playerId && l.date === date);
+      if (logIdx > -1) {
+        const log = this.db.dailyLogs[logIdx];
         log.rpe = 0;
         log.duration = 0;
         if ((!log.sleepDuration || log.sleepDuration === 0) && (!log.doms || log.doms === 1) && !log.cmjHeight) {
-          this.db.dailyLogs = this.db.dailyLogs.filter(l => !(l.playerId === playerId && l.date === date));
+          this.db.dailyLogs.splice(logIdx, 1);
         }
         this.saveDatabase();
+        if (this.cloudUrl) this.syncToCloud(true);
         this.showToast(`Dati RPE di ${pName} cancellati per il ${dateFormatted}.`);
         this.renderDailyLog();
         this.renderDashboard();
@@ -1540,16 +1542,18 @@ class AthleteHubApp {
     const dateFormatted = date ? date.split('-').reverse().join('/') : '';
     
     if (confirm(`Confermi la cancellazione dei SOLI dati Stato Mattutino (Sonno e DOMS) per ${pName} in data ${dateFormatted}?`)) {
-      const log = this.db.dailyLogs.find(l => l.playerId === playerId && l.date === date);
-      if (log) {
+      const logIdx = this.db.dailyLogs.findIndex(l => l.playerId === playerId && l.date === date);
+      if (logIdx > -1) {
+        const log = this.db.dailyLogs[logIdx];
         log.sleepQuality = 5;
         log.sleepDuration = 0;
         log.doms = 1;
         log.domsNotes = "";
         if ((!log.rpe || log.rpe === 0) && (!log.duration || log.duration === 0) && !log.cmjHeight) {
-          this.db.dailyLogs = this.db.dailyLogs.filter(l => !(l.playerId === playerId && l.date === date));
+          this.db.dailyLogs.splice(logIdx, 1);
         }
         this.saveDatabase();
+        if (this.cloudUrl) this.syncToCloud(true);
         this.showToast(`Dati Stato Mattutino di ${pName} cancellati per il ${dateFormatted}.`);
         this.renderDailyLog();
         this.renderDashboard();
@@ -1579,6 +1583,7 @@ class AthleteHubApp {
       });
       this.db.dailyLogs = this.db.dailyLogs.filter(l => l.rpe > 0 || l.sleepDuration > 0 || l.cmjHeight > 0);
       this.saveDatabase();
+      if (this.cloudUrl) this.syncToCloud(true);
       this.showToast(`Dati RPE dell'intera squadra cancellati per il ${dateFormatted}.`);
       this.renderDailyLog();
       this.renderDashboard();
@@ -1607,6 +1612,7 @@ class AthleteHubApp {
       });
       this.db.dailyLogs = this.db.dailyLogs.filter(l => l.rpe > 0 || l.sleepDuration > 0 || l.cmjHeight > 0);
       this.saveDatabase();
+      if (this.cloudUrl) this.syncToCloud(true);
       this.showToast(`Dati Stato Mattutino dell'intera squadra cancellati per il ${dateFormatted}.`);
       this.renderDailyLog();
       this.renderDashboard();
@@ -3966,7 +3972,7 @@ class AthleteHubApp {
       });
   }
 
-  syncToCloud() {
+  syncToCloud(isFullSync = true) {
     if (!this.cloudUrl) return;
 
     const statusEl = document.getElementById('cloud-sync-status');
@@ -3974,14 +3980,18 @@ class AthleteHubApp {
       statusEl.textContent = 'Stato: Invio dati in corso...';
     }
 
-    // Usiamo POST con mode 'no-cors' per inviare i dati aggirando i limiti di CORS di Apps Script
+    const payload = JSON.parse(JSON.stringify(this.db));
+    if (isFullSync) {
+      payload.isFullSync = true;
+    }
+
     fetch(this.cloudUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain'
       },
-      body: JSON.stringify(this.db)
+      body: JSON.stringify(payload)
     })
     .then(() => {
       console.log("Database sincronizzato in cloud via Apps Script.");
