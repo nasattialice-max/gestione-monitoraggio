@@ -1409,17 +1409,17 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Sforzo Percepito (RPE Borg CR10)</label>
             <select id="rpe-${p.id}" class="form-control">
-              <option value="0" ${!log || log.rpe === 0 ? 'selected' : ''}>0 - Nessuno sforzo</option>
-              <option value="1" ${log && log.rpe === 1 ? 'selected' : ''}>1 - Molto Leggero</option>
-              <option value="2" ${log && log.rpe === 2 ? 'selected' : ''}>2 - Facile</option>
-              <option value="3" ${log && log.rpe === 3 ? 'selected' : ''}>3 - Moderato</option>
-              <option value="4" ${log && log.rpe === 4 ? 'selected' : ''}>4 - Abbastanza Duro</option>
-              <option value="5" ${log && log.rpe === 5 ? 'selected' : ''}>5 - Duro</option>
-              <option value="6" ${log && log.rpe === 6 ? 'selected' : ''}>6 - Duro+</option>
-              <option value="7" ${log && log.rpe === 7 ? 'selected' : ''}>7 - Molto Duro</option>
-              <option value="8" ${log && log.rpe === 8 ? 'selected' : ''}>8 - Molto Duro+</option>
-              <option value="9" ${log && log.rpe === 9 ? 'selected' : ''}>9 - Estenuante</option>
-              <option value="10" ${log && log.rpe === 10 ? 'selected' : ''}>10 - Sforzo Massimo</option>
+              <option value="0" ${!log || log.rpe == 0 ? 'selected' : ''}>0 - Nessuno sforzo</option>
+              <option value="1" ${log && log.rpe == 1 ? 'selected' : ''}>1 - Molto Leggero</option>
+              <option value="2" ${log && log.rpe == 2 ? 'selected' : ''}>2 - Facile</option>
+              <option value="3" ${log && log.rpe == 3 ? 'selected' : ''}>3 - Moderato</option>
+              <option value="4" ${log && log.rpe == 4 ? 'selected' : ''}>4 - Abbastanza Duro</option>
+              <option value="5" ${log && log.rpe == 5 ? 'selected' : ''}>5 - Duro</option>
+              <option value="6" ${log && log.rpe == 6 ? 'selected' : ''}>6 - Duro+</option>
+              <option value="7" ${log && log.rpe == 7 ? 'selected' : ''}>7 - Molto Duro</option>
+              <option value="8" ${log && log.rpe == 8 ? 'selected' : ''}>8 - Molto Duro+</option>
+              <option value="9" ${log && log.rpe == 9 ? 'selected' : ''}>9 - Estenuante</option>
+              <option value="10" ${log && log.rpe == 10 ? 'selected' : ''}>10 - Sforzo Massimo</option>
             </select>
           </div>
 
@@ -1445,11 +1445,11 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Qualità del Sonno</label>
             <select id="sleep-q-${p.id}" class="form-control">
-              <option value="5" ${log && log.sleepQuality === 5 ? 'selected' : !log ? 'selected' : ''}>5 - Ottimo</option>
-              <option value="4" ${log && log.sleepQuality === 4 ? 'selected' : ''}>4 - Buono</option>
-              <option value="3" ${log && log.sleepQuality === 3 ? 'selected' : ''}>3 - Sufficiente</option>
-              <option value="2" ${log && log.sleepQuality === 2 ? 'selected' : ''}>2 - Poco</option>
-              <option value="1" ${log && log.sleepQuality === 1 ? 'selected' : ''}>1 - Insonnia</option>
+              <option value="5" ${log && log.sleepQuality == 5 ? 'selected' : !log ? 'selected' : ''}>5 - Ottimo</option>
+              <option value="4" ${log && log.sleepQuality == 4 ? 'selected' : ''}>4 - Buono</option>
+              <option value="3" ${log && log.sleepQuality == 3 ? 'selected' : ''}>3 - Sufficiente</option>
+              <option value="2" ${log && log.sleepQuality == 2 ? 'selected' : ''}>2 - Poco</option>
+              <option value="1" ${log && log.sleepQuality == 1 ? 'selected' : ''}>1 - Insonnia</option>
             </select>
           </div>
 
@@ -1457,11 +1457,11 @@ class AthleteHubApp {
           <div class="form-group">
             <label>Dolore Muscolare (DOMS)</label>
             <select id="doms-${p.id}" class="form-control">
-              <option value="1" ${log && log.doms === 1 ? 'selected' : !log ? 'selected' : ''}>1 - Nessun Dolore</option>
-              <option value="2" ${log && log.doms === 2 ? 'selected' : ''}>2 - Lieve Affaticamento</option>
-              <option value="3" ${log && log.doms === 3 ? 'selected' : ''}>3 - Dolore Moderato</option>
-              <option value="4" ${log && log.doms === 4 ? 'selected' : ''}>4 - Dolore Forte</option>
-              <option value="5" ${log && log.doms === 5 ? 'selected' : ''}>5 - Dolore Invalidante</option>
+              <option value="1" ${log && log.doms == 1 ? 'selected' : !log ? 'selected' : ''}>1 - Nessun Dolore</option>
+              <option value="2" ${log && log.doms == 2 ? 'selected' : ''}>2 - Lieve Affaticamento</option>
+              <option value="3" ${log && log.doms == 3 ? 'selected' : ''}>3 - Dolore Moderato</option>
+              <option value="4" ${log && log.doms == 4 ? 'selected' : ''}>4 - Dolore Forte</option>
+              <option value="5" ${log && log.doms == 5 ? 'selected' : ''}>5 - Dolore Invalidante</option>
             </select>
           </div>
 
@@ -3932,6 +3932,16 @@ class AthleteHubApp {
       })
       .then(data => {
         if (data && Array.isArray(data.players) && Array.isArray(data.dailyLogs)) {
+          // Convert string values from forms into proper numbers
+          data.dailyLogs.forEach(l => {
+            if (l.rpe !== undefined) l.rpe = Number(l.rpe) || 0;
+            if (l.duration !== undefined) l.duration = Number(l.duration) || 0;
+            if (l.sleepDuration !== undefined) l.sleepDuration = Number(l.sleepDuration) || 0;
+            if (l.sleepQuality !== undefined) l.sleepQuality = Number(l.sleepQuality) || 5;
+            if (l.doms !== undefined) l.doms = Number(l.doms) || 1;
+            if (l.cmjHeight !== undefined) l.cmjHeight = Number(l.cmjHeight) || 0;
+          });
+
           const oldLogsCount = (this.db && this.db.dailyLogs) ? this.db.dailyLogs.length : 0;
           this.db = data;
           this.saveDatabase(true); // Salva localmente saltando il push

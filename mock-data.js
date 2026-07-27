@@ -63,48 +63,6 @@ const generateMockData = () => {
       "sessionHRMax": 0
     },
     {
-      "id": "log_p_1785101493941_2026-07-27",
-      "date": "2026-07-27",
-      "playerId": "p_1785101493941",
-      "cmjHeight": 0,
-      "rpe": 1,
-      "duration": 40,
-      "sleepQuality": 5,
-      "sleepDuration": 8,
-      "doms": 1,
-      "domsNotes": "",
-      "restingHR": 0,
-      "sessionHRMax": 0
-    },
-    {
-      "id": "log_p_1785083532038_2026-07-27",
-      "date": "2026-07-27",
-      "playerId": "p_1785083532038",
-      "cmjHeight": 0,
-      "rpe": 0,
-      "duration": 0,
-      "sleepQuality": 5,
-      "sleepDuration": 7.5,
-      "doms": 1,
-      "domsNotes": "",
-      "restingHR": 0,
-      "sessionHRMax": 0
-    },
-    {
-      "id": "log_p_1785084172913_2026-07-27",
-      "date": "2026-07-27",
-      "playerId": "p_1785084172913",
-      "cmjHeight": 0,
-      "rpe": 8,
-      "duration": 90,
-      "sleepQuality": 4,
-      "sleepDuration": 7.5,
-      "doms": 3,
-      "domsNotes": "",
-      "restingHR": 0,
-      "sessionHRMax": 0
-    },
-    {
       "id": "log_p_mozzo_3_2026-07-26",
       "date": "2026-07-26",
       "playerId": "p_mozzo_3",
