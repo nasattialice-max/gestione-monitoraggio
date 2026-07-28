@@ -4,27 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Volley Team Manager & F-V Monitoring</title>
-  <!-- Global error catcher for debugging -->
-  <script>
-    window.addEventListener('error', function(e) {
-      const errorDiv = document.getElementById('debug-error-banner') || document.createElement('div');
-      errorDiv.id = 'debug-error-banner';
-      errorDiv.style.position = 'fixed';
-      errorDiv.style.top = '0';
-      errorDiv.style.left = '0';
-      errorDiv.style.width = '100%';
-      errorDiv.style.background = '#ef4444';
-      errorDiv.style.color = '#fff';
-      errorDiv.style.padding = '14px 24px';
-      errorDiv.style.fontSize = '14px';
-      errorDiv.style.fontWeight = 'bold';
-      errorDiv.style.zIndex = '99999';
-      errorDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
-      errorDiv.style.fontFamily = 'monospace';
-      errorDiv.innerHTML = '⚠️ Errore JavaScript: ' + e.message + ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')';
-      document.body.appendChild(errorDiv);
-    });
-  </script>
   <!-- Google Fonts: Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,7 +13,7 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260728_2">
 </head>
 <body>
 
@@ -777,10 +756,6 @@
                   <i data-lucide="download-cloud"></i>
                   <span>Scarica Backup (.json)</span>
                 </button>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 10px; background: #10b981; border-color: #10b981; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="app.exportMockDataJs()">
-                  <i data-lucide="share-2"></i>
-                  <span>Sincronizza Rosa per Cellulari (mock-data.js)</span>
-                </button>
               </div>
             </div>
 
@@ -813,11 +788,6 @@
                 <p class="text-muted">Operazioni distruttive di gestione del database locale. Fai attenzione.</p>
               </div>
               <div class="card-body flex-column" style="gap: 15px;">
-                <button class="btn btn-warning" id="btn-load-mock" style="width: 100%;">
-                  <i data-lucide="refresh-cw"></i>
-                  <span>Reinizializza con Dati Mock</span>
-                </button>
-                
                 <button class="btn btn-danger" id="btn-clear-db" style="width: 100%;">
                   <i data-lucide="alert-triangle"></i>
                   <span>Cancella Tutto (Reset Fabbrica)</span>
@@ -1415,16 +1385,8 @@
   <!-- Toast Notification -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- Purge Old Cached Browser Data -->
-  <script>
-    const oldDb = localStorage.getItem('soccer_team_db');
-    if (oldDb && (oldDb.includes('Marco Rossi') || oldDb.includes('"id":"p1"') || oldDb.includes('Giulia Bianchi'))) {
-      localStorage.removeItem('soccer_team_db');
-    }
-  </script>
   <!-- App scripts -->
-  <script src="mock-data.js?v=20260726_2"></script>
-  <script src="app.js?v=20260726_2"></script>
+  <script src="app.js?v=20260728_1"></script>
 </body>
 </html>
 

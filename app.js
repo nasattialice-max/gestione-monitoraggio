@@ -11,6 +11,7 @@ class AthleteHubApp {
     this.charts = {}; // Keep references to active ChartJS instances
     this.defaultCloudUrl = '';
     this.cloudUrl = localStorage.getItem('soccer_cloud_url') || '';
+    this.deletedPlayerIds = new Set(JSON.parse(localStorage.getItem('soccer_deleted_players') || '[]'));
     
     // Bind event handlers
     this.handleTabClick = this.handleTabClick.bind(this);
@@ -90,49 +91,45 @@ class AthleteHubApp {
 
   // DATABASE OPERATIONS
   loadDatabase() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('reset')) {
+      localStorage.removeItem('soccer_team_db');
+      localStorage.removeItem('soccer_deleted_players');
+    }
+
     const localData = localStorage.getItem('soccer_team_db');
     if (localData) {
       try {
         const parsed = JSON.parse(localData);
-        const sampleNames = ['marco rossi', 'giulia bianchi', 'martina rossi', 'sara verdi', 'elena neri', 'sofia russo'];
-        const sampleIds = ['p1', 'p2', 'p3', 'p4', 'p5'];
-        
-        if (parsed.players && Array.isArray(parsed.players)) {
-          const originalCount = parsed.players.length;
-          parsed.players = parsed.players.filter(p => {
-            const isSampleId = sampleIds.includes(p.id);
-            const isSampleName = sampleNames.includes((p.name || '').toLowerCase().trim());
-            return !isSampleId && !isSampleName;
-          });
-          if (parsed.players.length !== originalCount) {
-            this.db = parsed;
-            this.saveDatabase(true);
-          }
-        }
-        this.db = parsed;
-        if (!this.db || !Array.isArray(this.db.players)) {
+        if (parsed && Array.isArray(parsed.players) && parsed.players.length > 0) {
+          this.db = parsed;
+        } else {
           this.clearDatabase();
           return;
-        }
-        if (!this.db.neuromuscularTests) this.db.neuromuscularTests = {};
-        if (!this.db.calendarEvents) this.db.calendarEvents = [];
-        if (!this.db.settings) {
-          this.db.settings = {
-            teamName: "U.S. MOZZO",
-            hubName: "sez. PALLAVOLO",
-            logoUrl: "us_mozzo_logo.png"
-          };
-        }
-        if (this.db.settings.cloudUrl && !this.cloudUrl) {
-          this.cloudUrl = this.db.settings.cloudUrl;
-          localStorage.setItem('soccer_cloud_url', this.cloudUrl);
         }
       } catch (e) {
         console.error("Errore nel parsing del database locale. Inizializzo pulito.", e);
         this.clearDatabase();
+        return;
       }
     } else {
-      this.db = (window.MOCK_DATA && Array.isArray(window.MOCK_DATA.players)) ? JSON.parse(JSON.stringify(window.MOCK_DATA)) : generateMockData();
+      this.clearDatabase();
+    }
+
+    // Ensure all db data structures are valid and non-null
+    if (!this.db) this.db = {};
+    if (!Array.isArray(this.db.players)) this.db.players = [];
+    if (!Array.isArray(this.db.dailyLogs)) this.db.dailyLogs = [];
+    if (!Array.isArray(this.db.physicalTests)) this.db.physicalTests = [];
+    if (!this.db.squatProfiles || typeof this.db.squatProfiles !== 'object') this.db.squatProfiles = {};
+    if (!this.db.neuromuscularTests || typeof this.db.neuromuscularTests !== 'object') this.db.neuromuscularTests = {};
+    if (!Array.isArray(this.db.calendarEvents)) this.db.calendarEvents = [];
+    if (!this.db.settings || typeof this.db.settings !== 'object') {
+      this.db.settings = {
+        teamName: "U.S. MOZZO",
+        hubName: "sez. PALLAVOLO",
+        logoUrl: "us_mozzo_logo.png"
+      };
     }
   }
 
@@ -220,27 +217,25 @@ class AthleteHubApp {
   }
 
   clearDatabase() {
-    this.db = (window.MOCK_DATA && Array.isArray(window.MOCK_DATA.players) && window.MOCK_DATA.players.length > 0)
-      ? JSON.parse(JSON.stringify(window.MOCK_DATA))
-      : {
-        players: [
-          { id: "p1", number: 1, name: "Alice Nasatti", role: "Schiacciatrice", height: 175, weight: 65, fcMax: 190, status: "Attivo", notes: "" },
-          { id: "p2", number: 2, name: "Miriam P", role: "Palleggiatrice", height: 172, weight: 62, fcMax: 188, status: "Attivo", notes: "" },
-          { id: "p3", number: 3, name: "Luigia L", role: "Centrale", height: 180, weight: 68, fcMax: 185, status: "Attivo", notes: "" }
-        ],
-        dailyLogs: [],
-        physicalTests: [],
-        squatProfiles: {},
-        neuromuscularTests: {},
-        calendarEvents: [],
-        settings: {
-          teamName: "U.S. MOZZO",
-          hubName: "sez. PALLAVOLO",
-          logoUrl: "us_mozzo_logo.png"
-        }
-      };
+    this.db = {
+      players: [
+        { id: "p1", number: 1, name: "Alice Nasatti", role: "Schiacciatrice", height: 175, weight: 65, fcMax: 190, status: "Attivo", notes: "" },
+        { id: "p2", number: 2, name: "Miriam P", role: "Palleggiatrice", height: 172, weight: 62, fcMax: 188, status: "Attivo", notes: "" },
+        { id: "p3", number: 3, name: "Luigia L", role: "Centrale", height: 180, weight: 68, fcMax: 185, status: "Attivo", notes: "" }
+      ],
+      dailyLogs: [],
+      physicalTests: [],
+      squatProfiles: {},
+      neuromuscularTests: {},
+      calendarEvents: [],
+      settings: {
+        teamName: "U.S. MOZZO",
+        hubName: "sez. PALLAVOLO",
+        logoUrl: "us_mozzo_logo.png"
+      }
+    };
     this.saveDatabase(false);
-    this.showToast("Database inizializzato con la rosa ufficiale (Alice Nasatti, Miriam P, Luigia L).");
+    this.showToast("Database inizializzato con la rosa ufficiale.");
     this.renderTeamBranding();
     this.renderActiveTab();
   }
@@ -460,39 +455,43 @@ class AthleteHubApp {
   }
 
   renderActiveTab() {
-    switch (this.activeTab) {
-      case 'dashboard':
-        this.renderDashboard();
-        break;
-      case 'roster':
-        this.renderRoster();
-        break;
-      case 'daily-log':
-        this.renderDailyLog();
-        break;
-      case 'fv-profile':
-        this.populatePlayerSelects();
-        this.renderFvProfile();
-        break;
-      case 'neuro-loads':
-        this.renderNeuroLoads();
-        break;
-      case 'aerobic-loads':
-        this.renderAerobicLoads();
-        break;
-      case 'player-portal':
-        this.generatePortalQrs();
-        break;
-      case 'physical-tests':
-        this.populatePlayerSelects();
-        this.renderPhysicalTests();
-        break;
-      case 'backup-panel':
-        this.updateStatusIndicator();
-        break;
-      case 'schedule-panel':
-        this.renderSchedule();
-        break;
+    try {
+      switch (this.activeTab) {
+        case 'dashboard':
+          this.renderDashboard();
+          break;
+        case 'roster':
+          this.renderRoster();
+          break;
+        case 'daily-log':
+          this.renderDailyLog();
+          break;
+        case 'fv-profile':
+          this.populatePlayerSelects();
+          this.renderFvProfile();
+          break;
+        case 'neuro-loads':
+          this.renderNeuroLoads();
+          break;
+        case 'aerobic-loads':
+          this.renderAerobicLoads();
+          break;
+        case 'player-portal':
+          this.generatePortalQrs();
+          break;
+        case 'physical-tests':
+          this.populatePlayerSelects();
+          this.renderPhysicalTests();
+          break;
+        case 'backup-panel':
+          this.updateStatusIndicator();
+          break;
+        case 'schedule-panel':
+          this.renderSchedule();
+          break;
+      }
+    } catch(err) {
+      console.warn("Render warning in active tab:", err);
     }
   }
 
@@ -767,7 +766,9 @@ class AthleteHubApp {
   }
 
   drawTeamLoadChart() {
-    const ctx = document.getElementById('team-load-chart').getContext('2d');
+    const canvas = document.getElementById('team-load-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
     if (this.charts['team-load']) {
       this.charts['team-load'].destroy();
     }
@@ -874,7 +875,9 @@ class AthleteHubApp {
   }
 
   drawTeamReadinessChart(logsToday) {
-    const ctx = document.getElementById('team-readiness-chart').getContext('2d');
+    const canvas = document.getElementById('team-readiness-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
     if (this.charts['team-readiness']) {
       this.charts['team-readiness'].destroy();
     }
@@ -1063,105 +1066,110 @@ class AthleteHubApp {
     const sleepHours = logs.map(l => l.sleepDuration);
 
     // 1. CMJ vs Average Chart
-    const ctxCmj = document.getElementById('player-cmj-chart').getContext('2d');
-    if (this.charts['player-cmj']) this.charts['player-cmj'].destroy();
-    
-    // Create reference line array
-    const avgLine = Array(cmjValues.length).fill(globalAvgCmj);
+    const canvasCmj = document.getElementById('player-cmj-chart');
+    if (canvasCmj && typeof Chart !== 'undefined') {
+      const ctxCmj = canvasCmj.getContext('2d');
+      if (this.charts['player-cmj']) this.charts['player-cmj'].destroy();
+      
+      const avgLine = Array(cmjValues.length).fill(globalAvgCmj);
 
-    this.charts['player-cmj'] = new Chart(ctxCmj, {
-      type: 'line',
-      data: {
-        labels: dates,
-        datasets: [
-          {
-            label: 'CMJ Giornaliero (cm)',
-            data: cmjValues,
-            borderColor: '#00a8e8',
-            backgroundColor: 'rgba(0, 168, 232, 0.1)',
-            borderWidth: 3,
-            pointBackgroundColor: '#00a8e8',
-            pointRadius: 4,
-            tension: 0.25
-          },
-          {
-            label: 'Media Storica Giocatrice',
-            data: avgLine,
-            borderColor: '#ef4444',
-            backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            borderDash: [5, 5],
-            pointRadius: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#f3f4f6', font: { family: 'Outfit' } } }
+      this.charts['player-cmj'] = new Chart(ctxCmj, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            {
+              label: 'CMJ Giornaliero (cm)',
+              data: cmjValues,
+              borderColor: '#00a8e8',
+              backgroundColor: 'rgba(0, 168, 232, 0.1)',
+              borderWidth: 3,
+              pointBackgroundColor: '#00a8e8',
+              pointRadius: 4,
+              tension: 0.25
+            },
+            {
+              label: 'Media Storica Giocatrice',
+              data: avgLine,
+              borderColor: '#ef4444',
+              backgroundColor: 'transparent',
+              borderWidth: 1.5,
+              borderDash: [5, 5],
+              pointRadius: 0
+            }
+          ]
         },
-        scales: {
-          x: { ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
-          y: { 
-            ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
-            title: { display: true, text: 'Altezza salto (cm)', color: '#f3f4f6' }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f3f4f6', font: { family: 'Outfit' } } }
+          },
+          scales: {
+            x: { ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
+            y: { 
+              ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
+              title: { display: true, text: 'Altezza salto (cm)', color: '#f3f4f6' }
+            }
           }
         }
-      }
-    });
+      });
+    }
 
     // 2. Workload & Sleep Chart
-    const ctxWork = document.getElementById('player-workload-chart').getContext('2d');
-    if (this.charts['player-workload']) this.charts['player-workload'].destroy();
+    const canvasWork = document.getElementById('player-workload-chart');
+    if (canvasWork && typeof Chart !== 'undefined') {
+      const ctxWork = canvasWork.getContext('2d');
+      if (this.charts['player-workload']) this.charts['player-workload'].destroy();
 
-    this.charts['player-workload'] = new Chart(ctxWork, {
-      type: 'bar',
-      data: {
-        labels: dates,
-        datasets: [
-          {
-            label: 'Carico (Session-RPE)',
-            data: workloads,
-            backgroundColor: 'rgba(0, 168, 232, 0.45)',
-            borderColor: '#00a8e8',
-            borderWidth: 1.5,
-            borderRadius: 4,
-            yAxisID: 'y'
-          },
-          {
-            label: 'Durata Sonno (ore)',
-            data: sleepHours,
-            type: 'line',
-            borderColor: '#1e40af',
-            pointBackgroundColor: '#1e40af',
-            borderWidth: 2.5,
-            tension: 0.1,
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#f3f4f6', font: { family: 'Outfit' } } }
+      this.charts['player-workload'] = new Chart(ctxWork, {
+        type: 'bar',
+        data: {
+          labels: dates,
+          datasets: [
+            {
+              label: 'Carico (Session-RPE)',
+              data: workloads,
+              backgroundColor: 'rgba(0, 168, 232, 0.45)',
+              borderColor: '#00a8e8',
+              borderWidth: 1.5,
+              borderRadius: 4,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Durata Sonno (ore)',
+              data: sleepHours,
+              type: 'line',
+              borderColor: '#1e40af',
+              pointBackgroundColor: '#1e40af',
+              borderWidth: 2.5,
+              tension: 0.1,
+              yAxisID: 'y1'
+            }
+          ]
         },
-        scales: {
-          x: { ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
-          y: { 
-            ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
-            title: { display: true, text: 'Session-RPE', color: '#00a8e8' }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#f3f4f6', font: { family: 'Outfit' } } }
           },
-          y1: { 
-            position: 'right',
-            ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
-            title: { display: true, text: 'Sonno (Ore)', color: '#1e40af' },
-            grid: { drawOnChartArea: false }
+          scales: {
+            x: { ticks: { color: '#9ca3af', font: { family: 'Outfit' } } },
+            y: { 
+              ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
+              title: { display: true, text: 'Session-RPE', color: '#00a8e8' }
+            },
+            y1: { 
+              position: 'right',
+              ticks: { color: '#9ca3af', font: { family: 'Outfit' } },
+              title: { display: true, text: 'Sonno (Ore)', color: '#1e40af' },
+              grid: { drawOnChartArea: false }
+            }
           }
         }
-      }
-    });
+      });
+    }
 
     // 3. Populate Sleep & DOMS Detailed History Table
     const sleepTableBody = document.getElementById('player-det-sleep-history-body');
@@ -1300,6 +1308,11 @@ class AthleteHubApp {
 
     const existingIdx = this.db.players.findIndex(x => x.id === id);
 
+    if (this.deletedPlayerIds && this.deletedPlayerIds.has(id)) {
+      this.deletedPlayerIds.delete(id);
+      localStorage.setItem('soccer_deleted_players', JSON.stringify([...this.deletedPlayerIds]));
+    }
+
     if (existingIdx > -1) {
       // Edit
       this.db.players[existingIdx] = { ...this.db.players[existingIdx], id, name, role, status, birthDate, height, weight, injuryNotes };
@@ -1311,6 +1324,10 @@ class AthleteHubApp {
       this.db.squatProfiles[id] = [];
       this.db.neuromuscularTests[id] = { cmj: [], sj: [] };
       this.showToast(`Nuova giocatrice ${name} inserita in rosa!`);
+    }
+
+    if (window.MOCK_DATA) {
+      window.MOCK_DATA.players = JSON.parse(JSON.stringify(this.db.players));
     }
 
     this.saveDatabase();
@@ -1352,31 +1369,39 @@ class AthleteHubApp {
     const p = this.db.players.find(x => x.id === playerId);
     if (!p) return;
 
-    if (confirm(`Sei sicuro di voler eliminare permanentemente l'Giocatrice ${p.name}?\n\nQuesta azione cancellerà tutti i suoi log di fatica, i test fisici, i salti e il profilo VBT di squat associati in modo irrecuperabile.`)) {
-      
-      // 1. Elimina oggetto Giocatrice
+    if (confirm(`Sei sicuro di voler eliminare permanentemente la giocatrice ${p.name}?\n\nQuesta azione cancellerà tutti i suoi log di fatica, i test fisici, i salti e il profilo VBT di squat associati in modo irrecuperabile.`)) {
+      // Record deletion persistently
+      this.deletedPlayerIds.add(playerId);
+      localStorage.setItem('soccer_deleted_players', JSON.stringify([...this.deletedPlayerIds]));
+
+      // 1. Elimina oggetto Giocatrice dal database locale
       this.db.players = this.db.players.filter(x => x.id !== playerId);
 
-      // 2. Elimina i log giornalieri associati
+      // 2. Elimina dai MOCK_DATA in memoria se presente
+      if (window.MOCK_DATA && Array.isArray(window.MOCK_DATA.players)) {
+        window.MOCK_DATA.players = window.MOCK_DATA.players.filter(x => x.id !== playerId);
+      }
+
+      // 3. Elimina i log giornalieri associati
       this.db.dailyLogs = this.db.dailyLogs.filter(x => x.playerId !== playerId);
 
-      // 3. Elimina i test fisici associati (sprint, ecc.)
+      // 4. Elimina i test fisici associati
       this.db.physicalTests = this.db.physicalTests.filter(x => x.playerId !== playerId);
 
-      // 4. Pulisci profili squat e salti neuromuscolari
-      if (this.db.squatProfiles) {
-        delete this.db.squatProfiles[playerId];
-      }
-      if (this.db.neuromuscularTests) {
-        delete this.db.neuromuscularTests[playerId];
+      // 5. Pulisci profili squat e salti neuromuscolari
+      if (this.db.squatProfiles) delete this.db.squatProfiles[playerId];
+      if (this.db.neuromuscularTests) delete this.db.neuromuscularTests[playerId];
+
+      // Salva in localStorage e sincronizza al Cloud con sovrascrittura isFullSync
+      this.saveDatabase(false);
+      if (this.cloudUrl) {
+        this.syncToCloud(true);
       }
 
-      // Salva, chiudi e re-inizializza
-      this.saveDatabase();
       document.getElementById('player-detail-drawer').classList.remove('open');
       this.selectedPlayerId = null;
 
-      this.showToast(`giocatrice ${p.name} rimosso dalla rosa.`);
+      this.showToast(`Giocatrice ${p.name} rimossa dalla rosa.`);
       this.renderRoster();
       this.renderDailyLog();
       this.renderDashboard();
@@ -1962,7 +1987,9 @@ class AthleteHubApp {
   }
 
   drawFvRegressionChart(canvasId, points, reg) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || typeof Chart === 'undefined') return;
+    const ctx = canvas.getContext('2d');
     if (this.charts[canvasId]) {
       this.charts[canvasId].destroy();
     }
@@ -4056,6 +4083,12 @@ class AthleteHubApp {
       })
       .then(data => {
         if (data && Array.isArray(data.players) && Array.isArray(data.dailyLogs)) {
+          // 0. Exclude explicitly deleted players and their logs
+          if (this.deletedPlayerIds && this.deletedPlayerIds.size > 0) {
+            data.players = data.players.filter(p => !this.deletedPlayerIds.has(p.id));
+            data.dailyLogs = data.dailyLogs.filter(l => !this.deletedPlayerIds.has(l.playerId));
+          }
+
           // Convert string values from forms into proper numbers
           data.dailyLogs.forEach(l => {
             if (l.rpe !== undefined) l.rpe = Number(l.rpe) || 0;
@@ -4066,20 +4099,9 @@ class AthleteHubApp {
             if (l.cmjHeight !== undefined) l.cmjHeight = Number(l.cmjHeight) || 0;
           });
 
-          // Smart roster merge: if Cloud has fewer players than Local, merge local missing players into Cloud
-          if (this.db && Array.isArray(this.db.players) && this.db.players.length > data.players.length) {
-            const cloudPlayerIds = new Set(data.players.map(p => p.id));
-            this.db.players.forEach(localP => {
-              if (!cloudPlayerIds.has(localP.id)) {
-                data.players.push(localP);
-              }
-            });
-            this.db = data;
-            this.saveDatabase(false); // Save & sync merged full roster back to cloud!
-          } else {
-            this.db = data;
-            this.saveDatabase(true); // Save locally skipping push
-          }
+          // Cloud is Single Source of Truth
+          this.db = data;
+          localStorage.setItem('soccer_team_db', JSON.stringify(this.db));
           
           const oldLogsCount = (this.db && this.db.dailyLogs) ? this.db.dailyLogs.length : 0;
           const newLogsCount = this.db.dailyLogs.length;
