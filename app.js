@@ -9,8 +9,8 @@ class AthleteHubApp {
     this.activeTab = 'dashboard';
     this.selectedPlayerId = null;
     this.charts = {}; // Keep references to active ChartJS instances
-    this.defaultCloudUrl = '';
-    this.cloudUrl = localStorage.getItem('soccer_cloud_url') || '';
+    this.defaultCloudUrl = 'https://script.google.com/macros/s/AKfycbxpQjwmHh5vyBslpNXDkpUBNXXBt59QL7Bmm1Y8dnn5b0rWQKl5j1t1DKWuClmC_LXu/exec';
+    this.cloudUrl = localStorage.getItem('soccer_cloud_url') || this.defaultCloudUrl;
     this.deletedPlayerIds = new Set(JSON.parse(localStorage.getItem('soccer_deleted_players') || '[]'));
     
     // Bind event handlers
@@ -116,6 +116,11 @@ class AthleteHubApp {
       this.clearDatabase();
     }
 
+    if (!this.cloudUrl) {
+      this.cloudUrl = 'https://script.google.com/macros/s/AKfycbxpQjwmHh5vyBslpNXDkpUBNXXBt59QL7Bmm1Y8dnn5b0rWQKl5j1t1DKWuClmC_LXu/exec';
+    }
+    localStorage.setItem('soccer_cloud_url', this.cloudUrl);
+
     // Ensure all db data structures are valid and non-null
     if (!this.db) this.db = {};
     if (!Array.isArray(this.db.players)) this.db.players = [];
@@ -128,8 +133,11 @@ class AthleteHubApp {
       this.db.settings = {
         teamName: "U.S. MOZZO",
         hubName: "sez. PALLAVOLO",
-        logoUrl: "us_mozzo_logo.png"
+        logoUrl: "us_mozzo_logo.png",
+        cloudUrl: this.cloudUrl
       };
+    } else {
+      this.db.settings.cloudUrl = this.cloudUrl;
     }
   }
 
@@ -217,6 +225,11 @@ class AthleteHubApp {
   }
 
   clearDatabase() {
+    if (!this.cloudUrl) {
+      this.cloudUrl = 'https://script.google.com/macros/s/AKfycbxpQjwmHh5vyBslpNXDkpUBNXXBt59QL7Bmm1Y8dnn5b0rWQKl5j1t1DKWuClmC_LXu/exec';
+    }
+    localStorage.setItem('soccer_cloud_url', this.cloudUrl);
+
     this.db = {
       players: [
         { id: "p1", number: 1, name: "Alice Nasatti", role: "Schiacciatrice", height: 175, weight: 65, fcMax: 190, status: "Attivo", notes: "" },
@@ -231,7 +244,8 @@ class AthleteHubApp {
       settings: {
         teamName: "U.S. MOZZO",
         hubName: "sez. PALLAVOLO",
-        logoUrl: "us_mozzo_logo.png"
+        logoUrl: "us_mozzo_logo.png",
+        cloudUrl: this.cloudUrl
       }
     };
     this.saveDatabase(false);
