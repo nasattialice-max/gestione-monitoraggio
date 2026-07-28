@@ -34,12 +34,29 @@ const generateMockData = () => {
       "fcMax": 185,
       "status": "Attivo",
       "notes": ""
+    },
+    {
+      "id": "p_1785272714584",
+      "name": "armanda a",
+      "role": "Palleggiatrice (Alzatrice)",
+      "status": "Disponibile",
+      "birthDate": "2001-07-28",
+      "height": 178,
+      "weight": 55,
+      "injuryNotes": ""
     }
   ],
   "dailyLogs": [],
   "physicalTests": [],
-  "squatProfiles": {},
-  "neuromuscularTests": {},
+  "squatProfiles": {
+    "p_1785272714584": []
+  },
+  "neuromuscularTests": {
+    "p_1785272714584": {
+      "cmj": [],
+      "sj": []
+    }
+  },
   "calendarEvents": [],
   "settings": {
     "teamName": "U.S. MOZZO",
