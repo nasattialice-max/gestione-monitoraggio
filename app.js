@@ -3048,7 +3048,6 @@ class AthleteHubApp {
     localStorage.setItem('portal_url_rpe', rpeUrl);
     localStorage.setItem('portal_url_recovery', recUrl);
     
-    // Se l'utente ha cancellato il link, ricalcola e mostra il link di default del portale
     let cleanUrl = window.location.href.split('?')[0];
     if (window.location.protocol === 'file:') {
       cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
@@ -3445,12 +3444,18 @@ class AthleteHubApp {
   startKiosk(mode) {
     this.kioskMode = mode;
     
-    // Controlla se l'accesso è da link diretto per nascondere il tasto Esci
+    // Controlla se l'accesso è da link diretto / QR Code per nascondere l'interfaccia coach
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPlayerOnly = urlParams.has('kiosk');
+    
     const exitBtn = document.getElementById('kiosk-exit-btn');
     if (exitBtn) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isPlayerOnly = urlParams.has('kiosk');
       exitBtn.style.display = isPlayerOnly ? 'none' : 'block';
+    }
+
+    const appContainer = document.querySelector('.app-container');
+    if (isPlayerOnly && appContainer) {
+      appContainer.style.display = 'none';
     }
     
     const title = document.getElementById('kiosk-title');
@@ -3683,6 +3688,8 @@ class AthleteHubApp {
   
   exitKiosk() {
     document.getElementById('kiosk-overlay').style.display = 'none';
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) appContainer.style.display = 'flex';
     this.kioskMode = null;
     this.kioskPlayerId = null;
     this.renderDailyLog();
