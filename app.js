@@ -258,6 +258,11 @@ class AthleteHubApp {
     const dot = document.getElementById('db-status-dot');
     const text = document.getElementById('db-status-text');
     const counts = document.getElementById('db-status-counts');
+    const cloudInput = document.getElementById('config-cloud-url');
+    
+    if (cloudInput) {
+      cloudInput.value = this.cloudUrl || this.defaultCloudUrl || 'https://script.google.com/macros/s/AKfycbxpQjwmHh5vyBslpNXDkpUBNXXBt59QL7Bmm1Y8dnn5b0rWQKl5j1t1DKWuClmC_LXu/exec';
+    }
     
     if (this.db) {
       dot.className = 'status-indicator online';
