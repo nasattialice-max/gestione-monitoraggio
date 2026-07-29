@@ -3014,6 +3014,10 @@ class AthleteHubApp {
   }
 
   initPortalUrls() {
+    // Clear any old legacy portal URLs from localStorage
+    localStorage.removeItem('portal_url_rpe');
+    localStorage.removeItem('portal_url_recovery');
+
     let cleanUrl = window.location.href.split('?')[0];
     const isLocal = window.location.protocol === 'file:';
     
@@ -3039,7 +3043,7 @@ class AthleteHubApp {
     if (rpeInput) rpeInput.value = defaultRpe;
     if (recInput) recInput.value = defaultRec;
     
-    this.generatePortalQrs();
+    this.generatePortalQrs(true);
     this.setupCsvDragAndDrop();
   }
   
@@ -3049,9 +3053,6 @@ class AthleteHubApp {
     
     let rpeUrl = rpeInput ? rpeInput.value.trim() : '';
     let recUrl = recInput ? recInput.value.trim() : '';
-    
-    localStorage.setItem('portal_url_rpe', rpeUrl);
-    localStorage.setItem('portal_url_recovery', recUrl);
     
     let cleanUrl = window.location.href.split('?')[0];
     let baseUrl = cleanUrl;
@@ -3066,7 +3067,7 @@ class AthleteHubApp {
     if (!rpeUrl && rpeInput) rpeInput.value = defaultRpe;
     if (!recUrl && recInput) recInput.value = defaultRec;
     
-    this.generatePortalQrs();
+    this.generatePortalQrs(true);
     this.showToast("Link dei moduli salvati con successo!");
   }
   
@@ -3085,7 +3086,7 @@ class AthleteHubApp {
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
 
-    if (forceReset || !rpeInput || !rpeInput.value) {
+    if (forceReset || !rpeInput || !rpeInput.value || rpeInput.value.includes('index.html')) {
       localStorage.removeItem('portal_url_rpe');
       localStorage.removeItem('portal_url_recovery');
       if (rpeInput) rpeInput.value = defaultRpe;
@@ -3102,10 +3103,6 @@ class AthleteHubApp {
     
     rpeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(rpeUrl)}" style="border: 6px solid white; border-radius: 6px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.35); margin: 0 auto;" alt="QR Code RPE">`;
     recContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(recUrl)}" style="border: 6px solid white; border-radius: 6px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.35); margin: 0 auto;" alt="QR Code Recovery">`;
-    
-    if (forceReset) {
-      this.showToast("QR Code e link rigenerati con successo!");
-    }
   }
 
   copyPortalUrl(type) {
@@ -3132,21 +3129,15 @@ class AthleteHubApp {
   }
 
   testPortalUrl(type) {
-    const isLocal = window.location.protocol === 'file:';
-    const mode = type === 'rpe' ? 'post-workout' : 'morning-recovery';
+    const inputId = type === 'rpe' ? 'config-url-rpe' : 'config-url-recovery';
+    const input = document.getElementById(inputId);
     
-    if (isLocal) {
-      this.startKiosk(mode);
-      this.showToast("Avvio modulo di test offline...");
+    if (input && input.value) {
+      window.open(input.value, '_blank');
+      this.showToast("Apertura modulo di test...");
     } else {
-      const inputId = type === 'rpe' ? 'config-url-rpe' : 'config-url-recovery';
-      const input = document.getElementById(inputId);
-      if (input && input.value) {
-        window.open(input.value, '_blank');
-        this.showToast("Apertura link di test in corso...");
-      } else {
-        this.startKiosk(mode);
-      }
+      const mode = type === 'rpe' ? 'post-workout' : 'morning-recovery';
+      this.startKiosk(mode);
     }
   }
   
