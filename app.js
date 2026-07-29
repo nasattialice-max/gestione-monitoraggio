@@ -27,7 +27,17 @@ class AthleteHubApp {
     // 1. Load data from localStorage or mock-data
     this.loadDatabase();
 
-    // 2. Initialize date inputs to current date (local timezone safe)
+    // 2. Immediate Kiosk Mode Query Parameter check (opens questionnaire instantly on phone)
+    const urlParams = new URLSearchParams(window.location.search);
+    const kioskParam = urlParams.get('kiosk');
+    let initialKioskMode = null;
+    if (kioskParam === 'rpe' || kioskParam === 'post-workout') {
+      initialKioskMode = 'post-workout';
+    } else if (kioskParam === 'recovery' || kioskParam === 'morning-recovery') {
+      initialKioskMode = 'morning-recovery';
+    }
+
+    // 3. Initialize date inputs to current date
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const gDate = document.getElementById('global-date');
@@ -37,10 +47,10 @@ class AthleteHubApp {
     if (dDate) dDate.value = todayStr;
     if (tDate) tDate.value = todayStr;
 
-    // 3. Setup event listeners
+    // 4. Setup event listeners
     this.setupEventListeners();
 
-    // 4. Initialize Lucide Icons
+    // 5. Initialize Lucide Icons
     try {
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -49,15 +59,20 @@ class AthleteHubApp {
       console.warn("Lucide icons failed to load:", e);
     }
 
-    // 5. Render first view and team branding
+    // 6. Render first view and team branding
     this.renderTeamBranding();
     this.showTab('dashboard');
     this.updateStatusIndicator();
     
-    // 6. Initialize Player Portal urls and imports
+    // 7. Initialize Player Portal urls and imports
     this.initPortalUrls();
 
-    // 7. Initialize Cloud Sync and perform initial pull if URL is configured
+    // 8. Open Kiosk Questionnaire immediately if kiosk query param is present
+    if (initialKioskMode) {
+      this.startKiosk(initialKioskMode);
+    }
+
+    // 9. Initialize Cloud Sync and perform initial pull if URL is configured
     const urlInput = document.getElementById('config-cloud-url');
     if (urlInput) {
       urlInput.value = this.cloudUrl || this.defaultCloudUrl;
@@ -68,18 +83,11 @@ class AthleteHubApp {
       this.pullFromCloud();
     }
 
-    // 8. Check for Cloud URL, Roster & Kiosk URL Query Parameters
+    // 10. Check for Cloud URL & Roster Query Parameters
     this.decodeCloudUrlParam();
     this.decodeRosterParam();
-    const urlParams = new URLSearchParams(window.location.search);
-    const kioskParam = urlParams.get('kiosk');
-    if (kioskParam === 'rpe' || kioskParam === 'post-workout') {
-      this.startKiosk('post-workout');
-    } else if (kioskParam === 'recovery' || kioskParam === 'morning-recovery') {
-      this.startKiosk('morning-recovery');
-    }
 
-    // 9. Real-time cross-tab synchronization listener
+    // 11. Real-time cross-tab synchronization listener
     window.addEventListener('storage', (e) => {
       if (e.key === 'soccer_team_db') {
         this.loadDatabase();
@@ -3017,10 +3025,8 @@ class AthleteHubApp {
       cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
     }
 
-    const rosterParam = this.getEncodedRosterParam();
-    const cloudParam = this.getEncodedCloudUrlParam();
-    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam + cloudParam;
-    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam + cloudParam;
+    const defaultRpe = cleanUrl + '?kiosk=rpe';
+    const defaultRec = cleanUrl + '?kiosk=recovery';
 
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
@@ -3047,10 +3053,8 @@ class AthleteHubApp {
     if (window.location.protocol === 'file:') {
       cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
     }
-    const rosterParam = this.getEncodedRosterParam();
-    const cloudParam = this.getEncodedCloudUrlParam();
-    const defaultRpe = cleanUrl + '?kiosk=rpe' + rosterParam + cloudParam;
-    const defaultRec = cleanUrl + '?kiosk=recovery' + rosterParam + cloudParam;
+    const defaultRpe = cleanUrl + '?kiosk=rpe';
+    const defaultRec = cleanUrl + '?kiosk=recovery';
     
     if (!rpeUrl && rpeInput) rpeInput.value = defaultRpe;
     if (!recUrl && recInput) recInput.value = defaultRec;
@@ -3472,7 +3476,7 @@ class AthleteHubApp {
     document.getElementById('kiosk-step-success').style.display = 'none';
     
     const overlay = document.getElementById('kiosk-overlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) overlay.style.setProperty('display', 'flex', 'important');
   }
 
   renderKioskPlayerButtons(isSynced = false) {
