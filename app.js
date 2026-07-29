@@ -3023,12 +3023,15 @@ class AthleteHubApp {
     if (warnRpe) warnRpe.style.display = isLocal ? 'block' : 'none';
     if (warnRec) warnRec.style.display = isLocal ? 'block' : 'none';
 
+    let baseUrl = cleanUrl;
     if (isLocal) {
-      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
+      baseUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/';
+    } else {
+      baseUrl = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
     }
 
-    const defaultRpe = cleanUrl + '?kiosk=rpe';
-    const defaultRec = cleanUrl + '?kiosk=recovery';
+    const defaultRpe = baseUrl + 'modulo-rpe.html';
+    const defaultRec = baseUrl + 'modulo-mattutino.html';
 
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');
@@ -3051,11 +3054,14 @@ class AthleteHubApp {
     localStorage.setItem('portal_url_recovery', recUrl);
     
     let cleanUrl = window.location.href.split('?')[0];
+    let baseUrl = cleanUrl;
     if (window.location.protocol === 'file:') {
-      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
+      baseUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/';
+    } else {
+      baseUrl = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
     }
-    const defaultRpe = cleanUrl + '?kiosk=rpe';
-    const defaultRec = cleanUrl + '?kiosk=recovery';
+    const defaultRpe = baseUrl + 'modulo-rpe.html';
+    const defaultRec = baseUrl + 'modulo-mattutino.html';
     
     if (!rpeUrl && rpeInput) rpeInput.value = defaultRpe;
     if (!recUrl && recInput) recInput.value = defaultRec;
@@ -3066,14 +3072,15 @@ class AthleteHubApp {
   
   generatePortalQrs(forceReset = false) {
     let cleanUrl = window.location.href.split('?')[0];
-    const isLocal = window.location.protocol === 'file:';
-    
-    if (isLocal) {
-      cleanUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/index.html';
+    let baseUrl = cleanUrl;
+    if (window.location.protocol === 'file:') {
+      baseUrl = 'https://nasattialice-max.github.io/gestione-monitoraggio/';
+    } else {
+      baseUrl = cleanUrl.substring(0, cleanUrl.lastIndexOf('/') + 1);
     }
 
-    const defaultRpe = cleanUrl + '?kiosk=rpe';
-    const defaultRec = cleanUrl + '?kiosk=recovery';
+    const defaultRpe = baseUrl + 'modulo-rpe.html';
+    const defaultRec = baseUrl + 'modulo-mattutino.html';
 
     const rpeInput = document.getElementById('config-url-rpe');
     const recInput = document.getElementById('config-url-recovery');

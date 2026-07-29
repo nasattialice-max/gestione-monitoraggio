@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulo Post-Allenamento RPE - U.S. MOZZO PALLAVOLO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background: var(--bg-primary);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .kiosk-card {
+      width: 100%;
+      max-width: 520px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .player-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-white);
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .player-btn:hover, .player-btn.selected {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
+    .form-label {
+      color: var(--text-white);
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-white);
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .btn-submit {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 20px;
+    }
+    .btn-submit:hover {
+      background: var(--primary-hover);
+    }
+    .btn-back {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="kiosk-card">
+    <img src="us_mozzo_logo.png" style="width: 60px; height: 60px; object-fit: contain; margin-bottom: 12px; filter: drop-shadow(0 2px 8px rgba(225,29,72,0.4));">
+    <h2 style="color: var(--text-white); margin: 0 0 4px; font-size: 20px; text-align: center;">U.S. MOZZO PALLAVOLO</h2>
+    <h4 style="color: var(--primary); margin: 0 0 4px; font-size: 16px; text-align: center;">Modulo Post-Allenamento (RPE)</h4>
+    <p class="text-muted" style="margin: 0 0 20px; font-size: 13px; text-align: center;" id="subtitle-step">Passo 1 di 2: Seleziona il tuo nome dalla rosa</p>
+    
+    <div id="status-badge" style="font-size: 11px; color: #10b981; margin-bottom: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+      🔄 Connessione a Google Cloud...
+    </div>
+
+    <!-- PASSO 1: Selezione Giocatrice -->
+    <div id="step-1" style="width: 100%;">
+      <div id="players-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-height: 360px; overflow-y: auto; padding-right: 4px;">
+        <div style="grid-column: span 2; text-align: center; color: var(--text-muted); padding: 20px;">Caricamento giocatrici...</div>
+      </div>
+    </div>
+
+    <!-- PASSO 2: Form Inserimento RPE & Durata -->
+    <div id="step-2" style="width: 100%; display: none;">
+      <div style="background: rgba(225, 29, 72, 0.1); border: 1px solid var(--primary); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 13px; color: var(--text-muted);">Giocatrice selezionata:</span><br>
+        <strong style="font-size: 18px; color: var(--text-white);" id="display-player-name">Nome Giocatrice</strong>
+      </div>
+
+      <form id="rpe-form" onsubmit="submitRpeForm(event)">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Sforzo percepito (0-10) -->
+          <div>
+            <label class="form-label" for="select-rpe">Sforzo Percepito (RPE Borg CR10)</label>
+            <select id="select-rpe" class="form-control" required>
+              <option value="0">0 - Nessuno sforzo</option>
+              <option value="1">1 - Molto Leggero</option>
+              <option value="2">2 - Facile</option>
+              <option value="3">3 - Moderato</option>
+              <option value="4">4 - Abbastanza Duro</option>
+              <option value="5" selected>5 - Duro</option>
+              <option value="6">6 - Duro+</option>
+              <option value="7">7 - Molto Duro</option>
+              <option value="8">8 - Molto Duro+</option>
+              <option value="9">9 - Estenuante</option>
+              <option value="10">10 - Sforzo Massimo</option>
+            </select>
+          </div>
+
+          <!-- Durata allenamento -->
+          <div>
+            <label class="form-label" for="input-duration">Durata Allenamento (minuti)</label>
+            <div class="input-unit-wrapper">
+              <input type="number" id="input-duration" class="form-control" placeholder="es. 90" value="90" required min="1" max="300">
+              <span class="input-unit">min</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 24px;">
+          <button type="button" class="btn-back" style="flex: 1;" onclick="goToStep1()">← Indietro</button>
+          <button type="submit" class="btn-submit" style="flex: 2; margin-top: 0;">Invia Dati</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- PASSO 3: Conferma di Successo -->
+    <div id="step-3" style="width: 100%; display: none; text-align: center; padding: 20px 0;">
+      <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <i data-lucide="check" style="width: 32px; height: 32px;"></i>
+      </div>
+      <h3 style="color: var(--text-white); margin: 0 0 8px; font-size: 20px;">Dati Registrati con Successo!</h3>
+      <p class="text-muted" style="margin: 0 0 20px; font-size: 13px;">Il tuo sforzo è stato salvato nel gestionale.</p>
+      
+      <a id="wa-btn" href="#" target="_blank" style="background: #25D366; color: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; text-decoration: none; padding: 14px 20px; border-radius: 10px; font-size: 14px; width: 100%; box-sizing: border-box;">
+        📲 Invia Notifica su WhatsApp
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const cloudUrl = 'https://script.google.com/macros/s/AKfycbxpQjwmHh5vyBslpNXDkpUBNXXBt59QL7Bmm1Y8dnn5b0rWQKl5j1t1DKWuClmC_LXu/exec';
+    let selectedPlayerId = null;
+    let selectedPlayerName = '';
+    let dbData = { players: [], dailyLogs: [] };
+
+    function loadCloudData() {
+      fetch(cloudUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data && Array.isArray(data.players)) {
+            dbData = data;
+            document.getElementById('status-badge').innerHTML = '🟢 Connesso al Cloud Google';
+            renderPlayers();
+          }
+        })
+        .catch(err => {
+          console.warn("Offline fetch fallback", err);
+          const local = localStorage.getItem('soccer_team_db');
+          if (local) dbData = JSON.parse(local);
+          document.getElementById('status-badge').innerHTML = '🟡 Modalità Offline';
+          renderPlayers();
+        });
+    }
+
+    function renderPlayers() {
+      const grid = document.getElementById('players-grid');
+      grid.innerHTML = '';
+      
+      const activePlayers = (dbData.players || [])
+        .filter(p => p.status !== 'Infortunato')
+        .sort((a,b) => a.name.localeCompare(b.name));
+
+      if (activePlayers.length === 0) {
+        grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: #cbd5e1; padding: 20px;">Nessuna giocatrice disponibile trovata.</div>';
+        return;
+      }
+
+      activePlayers.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'player-btn';
+        btn.textContent = p.name;
+        btn.onclick = () => selectPlayer(p.id, p.name);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectPlayer(id, name) {
+      selectedPlayerId = id;
+      selectedPlayerName = name;
+      document.getElementById('display-player-name').textContent = name;
+      document.getElementById('subtitle-step').textContent = 'Passo 2 di 2: Inserisci Sforzo RPE e Durata';
+      document.getElementById('step-1').style.display = 'none';
+      document.getElementById('step-2').style.display = 'block';
+    }
+
+    function goToStep1() {
+      document.getElementById('subtitle-step').textContent = 'Passo 1 di 2: Seleziona il tuo nome dalla rosa';
+      document.getElementById('step-2').style.display = 'none';
+      document.getElementById('step-1').style.display = 'block';
+    }
+
+    function submitRpeForm(e) {
+      e.preventDefault();
+      if (!selectedPlayerId) return;
+
+      const rpe = parseInt(document.getElementById('select-rpe').value) || 0;
+      const duration = parseInt(document.getElementById('input-duration').value) || 0;
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let log = (dbData.dailyLogs || []).find(l => l.date === todayStr && l.playerId === selectedPlayerId);
+      if (!log) {
+        log = {
+          id: 'log_' + selectedPlayerId + '_' + todayStr,
+          date: todayStr,
+          playerId: selectedPlayerId,
+          cmjHeight: 0,
+          rpe: 0,
+          duration: 0,
+          sleepQuality: 5,
+          sleepDuration: 8,
+          doms: 1,
+          domsNotes: ''
+        };
+        if (!dbData.dailyLogs) dbData.dailyLogs = [];
+        dbData.dailyLogs.push(log);
+      }
+
+      log.rpe = rpe;
+      log.duration = duration;
+
+      localStorage.setItem('soccer_team_db', JSON.stringify(dbData));
+      
+      fetch(cloudUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(dbData)
+      }).catch(err => console.error(err));
+
+      const waMsg = `U.S. MOZZO PALLAVOLO: ${selectedPlayerName} ha registrato RPE ${rpe} (${duration} min) per l'allenamento!`;
+      document.getElementById('wa-btn').href = `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`;
+
+      document.getElementById('subtitle-step').textContent = 'Completato!';
+      document.getElementById('step-2').style.display = 'none';
+      document.getElementById('step-3').style.display = 'block';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      setTimeout(() => {
+        document.getElementById('step-3').style.display = 'none';
+        goToStep1();
+        loadCloudData();
+      }, 5000);
+    }
+
+    window.onload = () => {
+      loadCloudData();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
