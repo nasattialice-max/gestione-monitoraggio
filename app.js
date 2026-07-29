@@ -61,7 +61,9 @@ class AthleteHubApp {
 
     // 6. Render first view and team branding
     this.renderTeamBranding();
-    this.showTab('dashboard');
+    if (!initialKioskMode) {
+      this.showTab('dashboard');
+    }
     this.updateStatusIndicator();
     
     // 7. Initialize Player Portal urls and imports
@@ -4140,7 +4142,9 @@ class AthleteHubApp {
           }
           
           this.cloudSynced = true;
-          this.renderActiveTab();
+          if (!this.kioskMode) {
+            this.renderActiveTab();
+          }
           
           if (this.kioskMode && !this.kioskPlayerId) {
             this.renderKioskPlayerButtons(true);
